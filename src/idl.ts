@@ -1,5 +1,5 @@
 export const IDL = {
-  address: "9AYYXREwPQu7pRhnfsYr1pRy194zdJ4fTb55FhRCMvLb",
+  address: "5BhDb1YqZq8f9yED9rphTobT4zB25cwWWqLaZtYWCJd4",
   metadata: { name: "scheduled_transfer", version: "0.1.0", spec: "0.1.0" },
   instructions: [
     {
@@ -44,11 +44,29 @@ export const IDL = {
   accounts: [
     {
       name: "PaymentSchedule",
-      discriminator: [0, 0, 0, 0, 0, 0, 0, 0],
+      discriminator: [
+        220,
+        252,
+        154,
+        129,
+        139,
+        124,
+        204,
+        75
+      ]
     },
     {
       name: "PaymentRecord",
-      discriminator: [0, 0, 0, 0, 0, 0, 0, 0],
+      discriminator: [
+        202,
+        168,
+        56,
+        249,
+        127,
+        226,
+        86,
+        226
+      ]
     },
   ],
   types: [

@@ -10,7 +10,7 @@ program account that holds a list of future USDC/USDT transfers to a
 recipient. A separate keeper/crank calls `trigger_payment` on-chain when
 payments come due; this UI handles setup, funding, and monitoring.
 
-**Program ID (Devnet):** `9AYYXREwPQu7pRhnfsYr1pRy194zdJ4fTb55FhRCMvLb`
+**Program ID (Devnet):** `5BhDb1YqZq8f9yED9rphTobT4zB25cwWWqLaZtYWCJd4`
 
 ---
 

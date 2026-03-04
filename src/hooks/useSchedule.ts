@@ -8,7 +8,7 @@ import { findPaymentSchedulePda, findPaymentRecordPda } from "../utils/pda";
 
 function decodeSchedule(
   pubkey: PublicKey,
-  info: AccountInfo<Buffer>
+  info: AccountInfo<Buffer>,
 ): PaymentSchedule | null {
   try {
     const coder = new BorshAccountsCoder(IDL as any);
@@ -17,23 +17,24 @@ function decodeSchedule(
       publicKey: pubkey,
       authority: data.authority,
       recipient: data.recipient,
-      destinationTokenAccount: data.destinationTokenAccount,
+      destinationTokenAccount: data.destination_token_account,
       tokenType:
-        data.tokenType.usdc !== undefined ? "USDC" : "USDT",
+        data.token_type.usdc !== undefined ? "USDC" : "USDT",
       schedule: data.schedule.map((s: any) => ({
         timestamp: Number(s.timestamp),
         amount: BigInt(s.amount),
       })),
       bump: data.bump,
     };
-  } catch {
+  } catch (e) {
+    console.error("Failed to decode PaymentSchedule:", e);
     return null;
   }
 }
 
 function decodeRecord(
   pubkey: PublicKey,
-  info: AccountInfo<Buffer>
+  info: AccountInfo<Buffer>,
 ): PaymentRecord | null {
   try {
     const coder = new BorshAccountsCoder(IDL as any);
@@ -43,11 +44,12 @@ function decodeRecord(
       timestamp: Number(data.timestamp),
       amount: BigInt(data.amount),
       recipient: data.recipient,
-      executedAt: Number(data.executedAt),
-      paymentIndex: data.paymentIndex,
+      executedAt: Number(data.executed_at),
+      paymentIndex: data.payment_index,
       bump: data.bump,
     };
-  } catch {
+  } catch (e) {
+    console.error("Failed to decode PaymentRecord:", e);
     return null;
   }
 }
