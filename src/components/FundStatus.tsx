@@ -8,18 +8,46 @@ import {
 } from "@solana/web3.js";
 import {
   createTransferInstruction,
-  getOrCreateAssociatedTokenAccount,
+  getAssociatedTokenAddress,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import { FundStatus as FundStatusType, PaymentSchedule } from "../types";
 import { StatusBadge } from "./StatusBadge";
 import { formatTokenAmount, formatSol } from "../utils/format";
-import { TOKEN_DECIMALS } from "../constants";
+import {
+  TOKEN_DECIMALS,
+  USDC_MINT_DEVNET,
+  USDT_MINT_DEVNET,
+} from "../constants";
 
 interface Props {
   status: FundStatusType | null;
   schedule: PaymentSchedule | null;
   onRefresh: () => void;
+}
+
+/**
+ * Convert a decimal string to raw token units without floating-point
+ * precision loss.
+ */
+function parseTokenAmount(
+  input: string,
+  decimals: number,
+): bigint | null {
+  const trimmed = input.trim();
+  if (!trimmed || trimmed === ".") return null;
+
+  const parts = trimmed.split(".");
+  if (parts.length > 2) return null;
+
+  const whole = parts[0] || "0";
+  const frac = (parts[1] || "").padEnd(decimals, "0").slice(0, decimals);
+
+  try {
+    return BigInt(whole) * BigInt(10 ** decimals) + BigInt(frac);
+  } catch {
+    return null;
+  }
 }
 
 export function FundStatus({ status, schedule, onRefresh }: Props) {
@@ -29,45 +57,71 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
   const [solAmount, setSolAmount] = useState("");
   const [busy, setBusy] = useState(false);
   const [txSig, setTxSig] = useState<string | null>(null);
-  const [activePanel, setActivePanel] = useState<"token" | "sol" | null>(null);
+  const [activePanel, setActivePanel] = useState<"token" | "sol" | null>(
+    null,
+  );
 
   async function handleTokenTopup() {
     if (!publicKey || !schedule || !status?.sourceTokenAccount) return;
-    const raw = parseFloat(topupAmount);
-    if (isNaN(raw) || raw <= 0) return;
+
+    // FIX 1: Use integer-safe parsing instead of floating-point arithmetic
+    const amount = parseTokenAmount(topupAmount, TOKEN_DECIMALS);
+    if (amount === null || amount <= 0n) {
+      alert("Enter a valid positive amount.");
+      return;
+    }
 
     setBusy(true);
     setTxSig(null);
     try {
-      const amount = BigInt(Math.round(raw * 10 ** TOKEN_DECIMALS));
+      // FIX 2: Derive the expected mint from the schedule's tokenType
+      // instead of trusting on-chain account data that could be spoofed
+      // or stale.
+      const expectedMint =
+        schedule.tokenType === "USDC"
+          ? USDC_MINT_DEVNET
+          : USDT_MINT_DEVNET;
 
+      // FIX 3: Validate that the source token account actually holds
+      // the expected mint before transferring.
       const srcAcctInfo = await connection.getParsedAccountInfo(
-        status.sourceTokenAccount
+        status.sourceTokenAccount,
       );
-      const mint = new PublicKey(
-        (srcAcctInfo.value?.data as any)?.parsed?.info?.mint
-      );
+      const parsedData = srcAcctInfo.value?.data;
+      if (
+        !parsedData ||
+        typeof parsedData === "string" ||
+        !("parsed" in parsedData)
+      ) {
+        throw new Error("Could not parse source token account data.");
+      }
+      const onChainMint = parsedData.parsed?.info?.mint;
+      if (!onChainMint) {
+        throw new Error("Source token account has no mint.");
+      }
+      if (onChainMint !== expectedMint.toBase58()) {
+        throw new Error(
+          `Mint mismatch: expected ${expectedMint.toBase58()} but source account holds ${onChainMint}.`,
+        );
+      }
 
-      // Explicit Transaction type fixes TS2306 on the `tx` parameter
-      const userAta = await getOrCreateAssociatedTokenAccount(
-        connection,
-        {
-          publicKey,
-          signTransaction: async (tx: Transaction) => tx,
-        } as any,
-        mint,
-        publicKey
+      // FIX 4: Use getAssociatedTokenAddress (pure derivation) instead of
+      // getOrCreateAssociatedTokenAccount which required a real Signer the
+      // old code could not provide.
+      const userAta = await getAssociatedTokenAddress(
+        expectedMint,
+        publicKey,
       );
 
       const tx = new Transaction().add(
         createTransferInstruction(
-          userAta.address,
+          userAta,
           status.sourceTokenAccount,
           publicKey,
           amount,
           [],
-          TOKEN_PROGRAM_ID
-        )
+          TOKEN_PROGRAM_ID,
+        ),
       );
 
       const sig = await sendTransaction(tx, connection);
@@ -91,12 +145,16 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
     setTxSig(null);
     try {
       const lamports = Math.round(raw * LAMPORTS_PER_SOL);
+
+      // FIX 5: Send SOL to the schedule PDA, not schedule.authority
+      // (which is the user's own wallet). The program needs SOL on the
+      // PDA to cover rent / CPI fees for trigger_payment.
       const tx = new Transaction().add(
         SystemProgram.transfer({
           fromPubkey: publicKey,
-          toPubkey: schedule.authority,
+          toPubkey: schedule.publicKey,
           lamports,
-        })
+        }),
       );
       const sig = await sendTransaction(tx, connection);
       await connection.confirmTransaction(sig, "confirmed");
@@ -234,7 +292,7 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
         <div className="text-xs text-emerald-400 break-all">
           ✓ Tx confirmed:{" "}
           <a
-            href={`https://explorer.solana.com/tx/${txSig}?cluster=devnet`}
+            href={`https://explorer.solana.com/tx/${encodeURIComponent(txSig)}?cluster=devnet`}
             target="_blank"
             rel="noreferrer"
             className="underline"

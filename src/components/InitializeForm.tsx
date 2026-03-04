@@ -10,6 +10,7 @@ import {
   TOKEN_DECIMALS,
   USDC_MINT_DEVNET,
   USDT_MINT_DEVNET,
+  MAX_SCHEDULE_ENTRIES,
 } from "../constants";
 
 interface Props {
@@ -19,6 +20,44 @@ interface Props {
 interface PaymentEntry {
   date: string;
   amount: string;
+}
+
+/**
+ * Parse a decimal token string into raw u64 units without
+ * floating-point precision loss.
+ */
+function parseTokenAmount(
+  input: string,
+  decimals: number,
+): bigint | null {
+  const trimmed = input.trim();
+  if (!trimmed || trimmed === ".") return null;
+
+  const parts = trimmed.split(".");
+  if (parts.length > 2) return null;
+
+  const whole = parts[0] || "0";
+  const frac = (parts[1] || "").padEnd(decimals, "0").slice(0, decimals);
+
+  try {
+    const value =
+      BigInt(whole) * BigInt(10 ** decimals) + BigInt(frac);
+    return value > 0n ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Validate that a string is a valid Solana public key.
+ */
+function isValidPubkey(addr: string): boolean {
+  try {
+    new PublicKey(addr);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function InitializeForm({ onSuccess }: Props) {
@@ -31,6 +70,7 @@ export function InitializeForm({ onSuccess }: Props) {
     { date: "", amount: "" },
   ]);
   const [busy, setBusy] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -47,7 +87,7 @@ export function InitializeForm({ onSuccess }: Props) {
       }
     }
 
-    if (recipient.length > 0) {
+    if (recipient.length > 0 && isValidPubkey(recipient)) {
       derive();
     } else {
       setDestAta(null);
@@ -59,6 +99,11 @@ export function InitializeForm({ onSuccess }: Props) {
   }, [recipient, tokenType]);
 
   function addEntry() {
+    // FIX 6: Enforce MAX_SCHEDULE_ENTRIES on the client side
+    if (entries.length >= MAX_SCHEDULE_ENTRIES) {
+      alert(`Maximum of ${MAX_SCHEDULE_ENTRIES} payment entries allowed.`);
+      return;
+    }
     setEntries((e) => [...e, { date: "", amount: "" }]);
   }
 
@@ -69,16 +114,73 @@ export function InitializeForm({ onSuccess }: Props) {
   function updateEntry(
     i: number,
     field: keyof PaymentEntry,
-    value: string
+    value: string,
   ) {
     setEntries((e) =>
-      e.map((en, idx) => (idx === i ? { ...en, [field]: value } : en))
+      e.map((en, idx) => (idx === i ? { ...en, [field]: value } : en)),
     );
+  }
+
+  function validate(): string[] {
+    const errors: string[] = [];
+
+    // Validate recipient
+    if (!isValidPubkey(recipient)) {
+      errors.push("Invalid recipient public key.");
+    }
+
+    // Validate that recipient is not the user's own wallet
+    if (
+      wallet.publicKey &&
+      isValidPubkey(recipient) &&
+      new PublicKey(recipient).equals(wallet.publicKey)
+    ) {
+      errors.push("Recipient cannot be your own wallet.");
+    }
+
+    const validEntries = entries.filter((en) => en.date && en.amount);
+
+    if (validEntries.length === 0) {
+      errors.push("Add at least one payment entry.");
+    }
+
+    if (validEntries.length > MAX_SCHEDULE_ENTRIES) {
+      errors.push(
+        `Maximum of ${MAX_SCHEDULE_ENTRIES} payment entries allowed.`,
+      );
+    }
+
+    const now = Date.now() / 1000;
+    for (let i = 0; i < validEntries.length; i++) {
+      const en = validEntries[i];
+      const ts = Math.floor(new Date(en.date).getTime() / 1000);
+
+      // FIX 7: Reject dates in the past
+      if (ts <= now) {
+        errors.push(
+          `Entry ${i + 1}: Scheduled date must be in the future.`,
+        );
+      }
+
+      // FIX 8: Use safe integer parsing
+      const amount = parseTokenAmount(en.amount, TOKEN_DECIMALS);
+      if (amount === null) {
+        errors.push(
+          `Entry ${i + 1}: Invalid or zero amount.`,
+        );
+      }
+    }
+
+    return errors;
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!wallet.publicKey || !wallet.signTransaction || !destAta) return;
+
+    const errors = validate();
+    setValidationErrors(errors);
+    if (errors.length > 0) return;
 
     setBusy(true);
     try {
@@ -87,16 +189,18 @@ export function InitializeForm({ onSuccess }: Props) {
       });
       const program = new Program(IDL as any, provider);
 
+      // FIX 8: Use integer-safe parsing for amounts
       const schedule = entries
         .filter((en) => en.date && en.amount)
-        .map((en) => ({
-          timestamp: new BN(
-            Math.floor(new Date(en.date).getTime() / 1000)
-          ),
-          amount: new BN(
-            Math.round(parseFloat(en.amount) * 10 ** TOKEN_DECIMALS)
-          ),
-        }));
+        .map((en) => {
+          const amount = parseTokenAmount(en.amount, TOKEN_DECIMALS)!;
+          return {
+            timestamp: new BN(
+              Math.floor(new Date(en.date).getTime() / 1000),
+            ),
+            amount: new BN(amount.toString()),
+          };
+        });
 
       const [schedulePda] = findPaymentSchedulePda(wallet.publicKey);
 
@@ -105,7 +209,7 @@ export function InitializeForm({ onSuccess }: Props) {
           schedule,
           new PublicKey(recipient),
           new PublicKey(destAta),
-          { [tokenType.toLowerCase()]: {} }
+          { [tokenType.toLowerCase()]: {} },
         )
         .accounts({
           paymentSchedule: schedulePda,
@@ -128,6 +232,16 @@ export function InitializeForm({ onSuccess }: Props) {
         Initialize Schedule
       </h2>
       <form onSubmit={handleSubmit} className="space-y-4">
+        {validationErrors.length > 0 && (
+          <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3 space-y-1">
+            {validationErrors.map((err, i) => (
+              <p key={i} className="text-xs text-red-400">
+                {err}
+              </p>
+            ))}
+          </div>
+        )}
+
         <div>
           <label className="text-xs text-slate-500 block mb-1">
             Recipient Address
@@ -139,6 +253,11 @@ export function InitializeForm({ onSuccess }: Props) {
             placeholder="Pubkey…"
             className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-brand-500"
           />
+          {recipient && !isValidPubkey(recipient) && (
+            <p className="mt-1 text-xs text-red-400">
+              Invalid public key format.
+            </p>
+          )}
           {destAta && (
             <p className="mt-1 text-xs text-slate-500">
               Destination ATA:{" "}
@@ -175,12 +294,16 @@ export function InitializeForm({ onSuccess }: Props) {
         <div>
           <div className="flex items-center justify-between mb-2">
             <label className="text-xs text-slate-500">
-              Payment Entries
+              Payment Entries{" "}
+              <span className="text-slate-600">
+                ({entries.length}/{MAX_SCHEDULE_ENTRIES})
+              </span>
             </label>
             <button
               type="button"
               onClick={addEntry}
-              className="text-xs text-brand-400 hover:text-brand-300"
+              disabled={entries.length >= MAX_SCHEDULE_ENTRIES}
+              className="text-xs text-brand-400 hover:text-brand-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               + Add entry
             </button>

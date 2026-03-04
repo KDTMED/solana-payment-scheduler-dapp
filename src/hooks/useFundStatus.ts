@@ -22,7 +22,7 @@ export function useFundStatus(schedule: PaymentSchedule | null) {
     try {
       const tokenAccounts = await connection.getTokenAccountsByOwner(
         schedule.publicKey,
-        { programId: TOKEN_PROGRAM_ID }
+        { programId: TOKEN_PROGRAM_ID },
       );
 
       let tokenBalance = 0n;
@@ -37,7 +37,9 @@ export function useFundStatus(schedule: PaymentSchedule | null) {
         setSourceTokenAccount(null);
       }
 
-      const solBalance = await connection.getBalance(publicKey);
+      // FIX 9: Check SOL balance of the schedule PDA (where funds
+      // actually need to be) instead of the user's wallet.
+      const solBalance = await connection.getBalance(schedule.publicKey);
       const nextPayment = schedule.schedule[0] ?? null;
       const requiredForNext = nextPayment ? nextPayment.amount : null;
 
@@ -46,7 +48,9 @@ export function useFundStatus(schedule: PaymentSchedule | null) {
         solBalance,
         requiredForNext,
         isSufficient:
-          requiredForNext !== null ? tokenBalance >= requiredForNext : true,
+          requiredForNext !== null
+            ? tokenBalance >= requiredForNext
+            : true,
         isGasSufficient: BigInt(solBalance) >= MIN_GAS_LAMPORTS,
         sourceTokenAccount: srcPubkey,
       });
