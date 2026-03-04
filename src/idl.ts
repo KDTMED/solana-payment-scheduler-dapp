@@ -18,8 +18,35 @@ export const IDL = {
       ],
     },
     {
+      name: "close",
+      discriminator: [
+        98,
+        165,
+        201,
+        177,
+        108,
+        65,
+        206,
+        96
+      ],
+      accounts: [
+        { name: "payment_schedule", writable: true, pda: { seeds: [{ kind: "const", value: [112,97,121,109,101,110,116,95,115,99,104,101,100,117,108,101] }, { kind: "account", path: "authority" }] } },
+        { name: "authority", writable: true, signer: true },
+      ],
+      args: [],
+    },
+    {
       name: "check_funds",
-      discriminator: [0, 0, 0, 0, 0, 0, 0, 0], // filled at runtime
+      discriminator: [
+        120,
+        243,
+        158,
+        41,
+        82,
+        144,
+        227,
+        183
+      ],
       accounts: [
         { name: "payment_schedule" },
         { name: "source_token_account" },

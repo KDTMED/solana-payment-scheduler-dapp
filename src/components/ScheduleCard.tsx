@@ -1,17 +1,56 @@
+import { useState } from "react";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { Program, AnchorProvider } from "@coral-xyz/anchor";
 import { PaymentSchedule } from "../types";
 import { formatTokenAmount } from "../utils/format";
+import { findPaymentSchedulePda } from "../utils/pda";
+import { IDL } from "../idl";
 
 interface Props {
   schedule: PaymentSchedule | null;
+  onClose: () => void;
 }
 
-export function ScheduleCard({ schedule }: Props) {
+export function ScheduleCard({ schedule, onClose }: Props) {
+  const { connection } = useConnection();
+  const wallet = useWallet();
+  const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+
   if (!schedule) return null;
 
   const totalRemaining = schedule.schedule.reduce(
     (acc, p) => acc + p.amount,
-    0n
+    0n,
   );
+
+  async function handleClose() {
+    if (!wallet.publicKey || !wallet.signTransaction) return;
+
+    setBusy(true);
+    try {
+      const provider = new AnchorProvider(connection, wallet as any, {
+        commitment: "confirmed",
+      });
+      const program = new Program(IDL as any, provider);
+      const [schedulePda] = findPaymentSchedulePda(wallet.publicKey);
+
+      await (program.methods as any)
+        .close()
+        .accounts({
+          paymentSchedule: schedulePda,
+          authority: wallet.publicKey,
+        })
+        .rpc();
+
+      setConfirming(false);
+      onClose();
+    } catch (err: any) {
+      alert(err?.message ?? "Failed to close schedule");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <div className="rounded-xl bg-slate-900 border border-slate-800 p-6">
@@ -61,6 +100,38 @@ export function ScheduleCard({ schedule }: Props) {
             {schedule.destinationTokenAccount.toBase58().slice(0, 20)}…
           </span>
         </div>
+      </div>
+
+      {/* Close schedule */}
+      <div className="mt-4 pt-4 border-t border-slate-800">
+        {confirming ? (
+          <div className="flex items-center gap-3">
+            <p className="text-sm text-amber-400">
+              Close this schedule and reclaim rent? This cannot be undone.
+            </p>
+            <button
+              onClick={handleClose}
+              disabled={busy}
+              className="px-4 py-1.5 rounded-md bg-red-600 hover:bg-red-700 disabled:opacity-50 text-sm text-white transition-colors"
+            >
+              {busy ? "Closing…" : "Confirm"}
+            </button>
+            <button
+              onClick={() => setConfirming(false)}
+              disabled={busy}
+              className="px-4 py-1.5 rounded-md bg-slate-700 hover:bg-slate-600 text-sm text-slate-300 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirming(true)}
+            className="text-xs text-red-400 hover:text-red-300 transition-colors"
+          >
+            Close Schedule
+          </button>
+        )}
       </div>
     </div>
   );

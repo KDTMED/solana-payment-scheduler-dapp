@@ -78,7 +78,7 @@ function Dashboard() {
 
       {schedule ? (
         <>
-          <ScheduleCard schedule={schedule} />
+          <ScheduleCard schedule={schedule} onClose={handleRefresh} />
           <FundStatus
             status={status}
             schedule={schedule}
