@@ -234,7 +234,7 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
         <div className="text-xs text-emerald-400 break-all">
           ✓ Tx confirmed:{" "}
           <a
-            href={`https://explorer.solana.com/tx/${txSig}?cluster=custom&customUrl=http%3A%2F%2Flocalhost%3A8899`}
+            href={`https://explorer.solana.com/tx/${txSig}?cluster=devnet`}
             target="_blank"
             rel="noreferrer"
             className="underline"

@@ -98,7 +98,7 @@ function Dashboard() {
 }
 
 export default function App() {
-  const endpoint = useMemo(() => "http://localhost:8899", []);
+  const endpoint = useMemo(() => clusterApiUrl("devnet"), []);
   const wallets = useMemo(
     () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
     []
