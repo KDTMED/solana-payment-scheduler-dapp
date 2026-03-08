@@ -3,8 +3,8 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { Program, AnchorProvider } from "@coral-xyz/anchor";
 import { PaymentSchedule } from "../types";
 import { formatTokenAmount } from "../utils/format";
-import { findPaymentSchedulePda } from "../utils/pda";
 import IDL from "../scheduled_transfer.json";
+import type { ScheduledTransfer } from "../scheduled_transfer";
 
 interface Props {
   schedule: PaymentSchedule | null;
@@ -32,13 +32,11 @@ export function ScheduleCard({ schedule, onClose }: Props) {
       const provider = new AnchorProvider(connection, wallet as any, {
         commitment: "confirmed",
       });
-      const program = new Program(IDL as any, provider);
-      const [schedulePda] = findPaymentSchedulePda(wallet.publicKey);
+      const program = new Program<ScheduledTransfer>(IDL as unknown as ScheduledTransfer, provider);
 
-      await (program.methods as any)
+      await program.methods
         .close()
         .accounts({
-          paymentSchedule: schedulePda,
           authority: wallet.publicKey,
         })
         .rpc();

@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { PublicKey, SystemProgram } from "@solana/web3.js";
+import { PublicKey } from "@solana/web3.js";
 import { Program, AnchorProvider, BN } from "@coral-xyz/anchor";
 import { getAssociatedTokenAddress } from "@solana/spl-token";
 import IDL from "../scheduled_transfer.json";
-import { findPaymentSchedulePda } from "../utils/pda";
+import type { ScheduledTransfer } from "../scheduled_transfer";
 import {
   TOKEN_DECIMALS,
   USDC_MINT_DEVNET,
@@ -186,7 +186,7 @@ export function InitializeForm({ onSuccess }: Props) {
       const provider = new AnchorProvider(connection, wallet as any, {
         commitment: "confirmed",
       });
-      const program = new Program(IDL as any, provider);
+      const program = new Program<ScheduledTransfer>(IDL as unknown as ScheduledTransfer, provider);
 
       // FIX 8: Use integer-safe parsing for amounts
       const schedule = entries
@@ -201,9 +201,7 @@ export function InitializeForm({ onSuccess }: Props) {
           };
         });
 
-      const [schedulePda] = findPaymentSchedulePda(wallet.publicKey);
-
-      await (program.methods as any)
+      await program.methods
         .initialize(
           schedule,
           new PublicKey(recipient),
@@ -211,9 +209,7 @@ export function InitializeForm({ onSuccess }: Props) {
           { [tokenType.toLowerCase()]: {} },
         )
         .accounts({
-          paymentSchedule: schedulePda,
           authority: wallet.publicKey,
-          systemProgram: SystemProgram.programId,
         })
         .rpc();
 

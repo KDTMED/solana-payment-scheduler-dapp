@@ -11,7 +11,7 @@ import {
   getAssociatedTokenAddress,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
-import { Program, AnchorProvider } from "@coral-xyz/anchor";
+import { Program, AnchorProvider, BN } from "@coral-xyz/anchor";
 import { FundStatus as FundStatusType, PaymentSchedule } from "../types";
 import { StatusBadge } from "./StatusBadge";
 import { formatTokenAmount, formatSol } from "../utils/format";
@@ -22,6 +22,7 @@ import {
 } from "../constants";
 import { findPaymentSchedulePda } from "../utils/pda";
 import IDL from "../scheduled_transfer.json";
+import type { ScheduledTransfer } from "../scheduled_transfer";
 
 interface Props {
   status: FundStatusType | null;
@@ -132,18 +133,14 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
       const provider = new AnchorProvider(connection, wallet, {
         commitment: "confirmed",
       });
-      const program = new Program(IDL as any, provider);
-      const [schedulePda] = findPaymentSchedulePda(publicKey);
+      const program = new Program<ScheduledTransfer>(IDL as unknown as ScheduledTransfer, provider);
       const userAta = await getAssociatedTokenAddress(mint, publicKey);
 
-      const sig = await (program.methods as any)
-        .withdrawTokens(amount)
+      const sig = await program.methods
+        .withdrawTokens(new BN(amount.toString()))
         .accounts({
-          paymentSchedule: schedulePda,
           sourceTokenAccount,
           destinationTokenAccount: userAta,
-          authority: publicKey,
-          tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
 
@@ -205,16 +202,12 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
       const provider = new AnchorProvider(connection, wallet, {
         commitment: "confirmed",
       });
-      const program = new Program(IDL as any, provider);
-      const [schedulePda] = findPaymentSchedulePda(publicKey);
-      const lamports = BigInt(Math.round(raw * LAMPORTS_PER_SOL));
+      const program = new Program<ScheduledTransfer>(IDL as unknown as ScheduledTransfer, provider);
+      const lamports = Math.round(raw * LAMPORTS_PER_SOL);
 
-      const sig = await (program.methods as any)
-        .withdrawSol(lamports)
-        .accounts({
-          paymentSchedule: schedulePda,
-          authority: publicKey,
-        })
+      const sig = await program.methods
+        .withdrawSol(new BN(lamports))
+        .accounts({})
         .rpc();
 
       await connection.confirmTransaction(sig, "confirmed");
