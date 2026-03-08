@@ -4,7 +4,7 @@ import { Program, AnchorProvider } from "@coral-xyz/anchor";
 import { PaymentSchedule } from "../types";
 import { formatTokenAmount } from "../utils/format";
 import { findPaymentSchedulePda } from "../utils/pda";
-import { IDL } from "../idl";
+import IDL from "../scheduled_transfer.json";
 
 interface Props {
   schedule: PaymentSchedule | null;
@@ -91,13 +91,13 @@ export function ScheduleCard({ schedule, onClose }: Props) {
         <div>
           <span className="text-slate-600">Recipient: </span>
           <span className="font-mono text-slate-400">
-            {schedule.recipient.toBase58().slice(0, 20)}…
+            {schedule.recipient?.toBase58().slice(0, 20) ?? "—"}…
           </span>
         </div>
         <div>
           <span className="text-slate-600">Destination ATA: </span>
           <span className="font-mono text-slate-400">
-            {schedule.destinationTokenAccount.toBase58().slice(0, 20)}…
+            {schedule.destinationTokenAccount?.toBase58().slice(0, 20) ?? "—"}…
           </span>
         </div>
       </div>

@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey, AccountInfo } from "@solana/web3.js";
 import { BorshAccountsCoder } from "@coral-xyz/anchor";
-import { IDL } from "../idl";
+import IDL from "../scheduled_transfer.json";
 import { PaymentSchedule, PaymentRecord } from "../types";
 import { findPaymentSchedulePda, findPaymentRecordPda } from "../utils/pda";
 
@@ -17,9 +17,9 @@ function decodeSchedule(
       publicKey: pubkey,
       authority: data.authority,
       recipient: data.recipient,
-      destinationTokenAccount: data.destination_token_account,
+      destinationTokenAccount: data.destinationTokenAccount,
       tokenType:
-        data.token_type.usdc !== undefined ? "USDC" : "USDT",
+        data.tokenType?.usdc !== undefined ? "USDC" : "USDT",
       schedule: data.schedule.map((s: any) => ({
         timestamp: Number(s.timestamp),
         amount: BigInt(s.amount),
@@ -44,8 +44,8 @@ function decodeRecord(
       timestamp: Number(data.timestamp),
       amount: BigInt(data.amount),
       recipient: data.recipient,
-      executedAt: Number(data.executed_at),
-      paymentIndex: data.payment_index,
+      executedAt: Number(data.executedAt),
+      paymentIndex: data.paymentIndex,
       bump: data.bump,
     };
   } catch (e) {

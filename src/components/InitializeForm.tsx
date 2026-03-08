@@ -3,10 +3,9 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey, SystemProgram } from "@solana/web3.js";
 import { Program, AnchorProvider, BN } from "@coral-xyz/anchor";
 import { getAssociatedTokenAddress } from "@solana/spl-token";
-import { IDL } from "../idl";
+import IDL from "../scheduled_transfer.json";
 import { findPaymentSchedulePda } from "../utils/pda";
 import {
-  PROGRAM_ID,
   TOKEN_DECIMALS,
   USDC_MINT_DEVNET,
   USDT_MINT_DEVNET,
