@@ -1,58 +1,76 @@
 import { useEffect, useState, useCallback } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { PublicKey } from "@solana/web3.js";
-import { TOKEN_PROGRAM_ID, getAccount } from "@solana/spl-token";
+import { getAccount, getAssociatedTokenAddress } from "@solana/spl-token";
 import { PaymentSchedule, FundStatus } from "../types";
-import { MIN_GAS_LAMPORTS } from "../constants";
+import { MIN_GAS_LAMPORTS, USDC_MINT_DEVNET, USDT_MINT_DEVNET } from "../constants";
+import { findPaymentSchedulePda } from "../utils/pda";
 
 export function useFundStatus(schedule: PaymentSchedule | null) {
   const { connection } = useConnection();
   const { publicKey } = useWallet();
 
   const [status, setStatus] = useState<FundStatus | null>(null);
-  const [sourceTokenAccount, setSourceTokenAccount] =
-    useState<PublicKey | null>(null);
 
   const refresh = useCallback(async () => {
-    if (!publicKey || !schedule) {
+    if (!publicKey) {
       setStatus(null);
       return;
     }
 
     try {
-      const tokenAccounts = await connection.getTokenAccountsByOwner(
-        schedule.publicKey,
-        { programId: TOKEN_PROGRAM_ID },
-      );
+      const [schedulePda] = findPaymentSchedulePda(publicKey);
 
-      let tokenBalance = 0n;
-      let srcPubkey: PublicKey | null = null;
+      const solBalance = await connection.getBalance(schedulePda);
 
-      if (tokenAccounts.value.length > 0) {
-        srcPubkey = tokenAccounts.value[0].pubkey;
-        const acct = await getAccount(connection, srcPubkey);
-        tokenBalance = acct.amount;
-        setSourceTokenAccount(srcPubkey);
-      } else {
-        setSourceTokenAccount(null);
+      // Derive and query USDC ATA of the schedule PDA
+      let usdcBalance = 0n;
+      let usdcTokenAccount = null;
+      try {
+        const usdcAta = await getAssociatedTokenAddress(
+          USDC_MINT_DEVNET,
+          schedulePda,
+          true, // allowOwnerOffCurve — PDA is off-curve
+        );
+        const acct = await getAccount(connection, usdcAta);
+        usdcBalance = acct.amount;
+        usdcTokenAccount = usdcAta;
+      } catch {
+        // Account doesn't exist yet
       }
 
-      // FIX 9: Check SOL balance of the schedule PDA (where funds
-      // actually need to be) instead of the user's wallet.
-      const solBalance = await connection.getBalance(schedule.publicKey);
-      const nextPayment = schedule.schedule[0] ?? null;
+      // Derive and query USDT ATA of the schedule PDA
+      let usdtBalance = 0n;
+      let usdtTokenAccount = null;
+      try {
+        const usdtAta = await getAssociatedTokenAddress(
+          USDT_MINT_DEVNET,
+          schedulePda,
+          true,
+        );
+        const acct = await getAccount(connection, usdtAta);
+        usdtBalance = acct.amount;
+        usdtTokenAccount = usdtAta;
+      } catch {
+        // Account doesn't exist yet
+      }
+
+      const nextPayment = schedule?.schedule[0] ?? null;
       const requiredForNext = nextPayment ? nextPayment.amount : null;
+      const scheduleBalance =
+        schedule?.tokenType === "USDC" ? usdcBalance : usdtBalance;
 
       setStatus({
-        tokenBalance,
         solBalance,
+        isGasSufficient: BigInt(solBalance) >= MIN_GAS_LAMPORTS,
+        usdcBalance,
+        usdtBalance,
+        usdcTokenAccount,
+        usdtTokenAccount,
         requiredForNext,
         isSufficient:
           requiredForNext !== null
-            ? tokenBalance >= requiredForNext
+            ? scheduleBalance >= requiredForNext
             : true,
-        isGasSufficient: BigInt(solBalance) >= MIN_GAS_LAMPORTS,
-        sourceTokenAccount: srcPubkey,
       });
     } catch {
       setStatus(null);
@@ -65,5 +83,5 @@ export function useFundStatus(schedule: PaymentSchedule | null) {
     return () => clearInterval(id);
   }, [refresh]);
 
-  return { status, sourceTokenAccount, refresh };
+  return { status, refresh };
 }

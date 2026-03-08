@@ -91,7 +91,14 @@ function Dashboard() {
           />
         </>
       ) : (
-        <InitializeForm onSuccess={handleRefresh} />
+        <>
+          <InitializeForm onSuccess={handleRefresh} />
+          <FundStatus
+            status={status}
+            schedule={schedule}
+            onRefresh={handleRefresh}
+          />
+        </>
       )}
     </div>
   );

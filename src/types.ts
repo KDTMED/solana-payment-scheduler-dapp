@@ -28,10 +28,13 @@ export interface PaymentRecord {
 }
 
 export interface FundStatus {
-  tokenBalance: bigint;  // raw units
-  solBalance: number;    // lamports
+  solBalance: number;       // lamports
+  isGasSufficient: boolean;
+  usdcBalance: bigint;
+  usdtBalance: bigint;
+  usdcTokenAccount: PublicKey | null;
+  usdtTokenAccount: PublicKey | null;
+  // Set when a schedule exists; null otherwise
   requiredForNext: bigint | null;
   isSufficient: boolean;
-  isGasSufficient: boolean;
-  sourceTokenAccount: PublicKey | null;
 }
