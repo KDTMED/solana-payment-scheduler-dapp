@@ -17,9 +17,9 @@ function decodeSchedule(
       publicKey: pubkey,
       authority: data.authority,
       recipient: data.recipient,
-      destinationTokenAccount: data.destinationTokenAccount,
+      destinationTokenAccount: data.destination_token_account,
       tokenType:
-        data.tokenType?.usdc !== undefined ? "USDC" : "USDT",
+        data.token_type?.USDC !== undefined ? "USDC" : "USDT",
       schedule: data.schedule.map((s: any) => ({
         timestamp: Number(s.timestamp),
         amount: BigInt(s.amount),
