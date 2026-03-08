@@ -44,15 +44,15 @@ payments come due; this UI handles setup, funding, and monitoring.
 
 ### Prerequisites
 
-- Node.js ≥ 18
+- [Bun](https://bun.sh) ≥ 1.0
 - A Solana wallet browser extension (Phantom or Solflare)
 - Devnet SOL for fees (`solana airdrop 1` or the [faucet](https://faucet.solana.com))
 
 ### Install & Run
 
 ```bash
-npm install
-npm run dev
+bun install
+bun dev
 ```
 
 Open [http://localhost:5173](http://localhost:5173) in your browser.
@@ -60,7 +60,15 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 ### Build
 
 ```bash
-npm run build
+bun run build
+```
+
+### Test
+
+```bash
+bun test                  # run once
+bun run test:watch        # watch mode
+bun run test:coverage     # with coverage report
 ```
 
 ---
@@ -101,7 +109,7 @@ src/
     format.ts            # Token amount, SOL, timestamp, duration helpers
     pda.ts               # PDA derivation for schedule and record accounts
   constants.ts           # Program ID, token mints, decimals, limits
-  idl.ts                 # Anchor IDL for the on-chain program
+  scheduled_transfer.ts  # Anchor IDL type definitions for the on-chain program
   types.ts               # Shared TypeScript interfaces
 ```
 
