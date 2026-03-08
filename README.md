@@ -18,9 +18,12 @@ payments come due; this UI handles setup, funding, and monitoring.
 
 - **Initialize a schedule** — define payment entries (date + amount) and a
   recipient token account
-- **Fund status dashboard** — live token balance and SOL gas balance with
-  sufficiency indicators
-- **Top-up flows** — send tokens or SOL directly from the UI
+- **Fund status dashboard** — live USDC, USDT, and SOL balances with
+  sufficiency indicators; always visible whether or not a schedule exists
+- **Top-up flows** — send USDC, USDT, or SOL to the schedule PDA directly
+  from the UI
+- **Withdraw flows** — recover USDC, USDT, or SOL from the schedule PDA at
+  any time, with or without pending payments
 - **Payments table** — view pending scheduled payments and completed
   payment history
 - **Wallet support** — Phantom and Solflare via wallet-adapter
@@ -76,18 +79,22 @@ bun run test:coverage     # with coverage report
 ## Usage
 
 1. **Connect wallet** using the button in the top-right corner.
-2. If you have no existing schedule, the **Initialize Schedule** form appears.
+2. If you have no existing schedule, the **Initialize Schedule** form appears
+   with the **Fund Status** panel below it. You can top up or withdraw funds
+   at any time, even before creating a schedule.
    - Enter a recipient address and their destination token account (ATA).
    - Select USDC or USDT.
    - Add one or more payment entries with a date/time and amount.
    - Click **Create Schedule**.
 3. Once initialized, the dashboard shows:
    - **Schedule Card** — summary of pending payments and total remaining.
-   - **Fund Status** — token balance and SOL balance with top-up buttons.
+   - **Fund Status** — separate USDC, USDT, and SOL panels each with
+     **Top Up** and **Withdraw** buttons.
    - **Scheduled Payments** — upcoming payments with due/overdue indicators.
    - **Payment History** — completed payments recorded on-chain.
-4. Use **Top Up Tokens** or **Top Up SOL** to fund the schedule before
-   payments come due.
+4. Use **Top Up** to fund the schedule before payments come due, or
+   **Withdraw** to recover funds at any time — pending payments do not
+   block withdrawals.
 
 ---
 
@@ -96,7 +103,7 @@ bun run test:coverage     # with coverage report
 ```text
 src/
   components/
-    FundStatus.tsx       # Token + SOL balance cards with top-up flows
+    FundStatus.tsx       # USDC, USDT, and SOL balance cards with top-up and withdraw flows
     Header.tsx           # Sticky nav with wallet button
     InitializeForm.tsx   # Schedule creation form
     PaymentsTable.tsx    # Upcoming and historical payments
