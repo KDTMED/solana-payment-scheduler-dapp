@@ -15,7 +15,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "predeploy": "bun run build:mainnet",
+    "predeploy": "bun run build:devnet",
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
