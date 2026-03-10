@@ -1,3 +1,4 @@
+import { explorerClusterParam } from "../config";
 import { useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import {
@@ -450,7 +451,7 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
         <div className="text-xs text-emerald-400 break-all">
           ✓ Tx confirmed:{" "}
           <a
-            href={`https://explorer.solana.com/tx/${encodeURIComponent(txSig)}?cluster=devnet`}
+            href={`https://explorer.solana.com/tx/${encodeURIComponent(txSig)}${explorerClusterParam()}`}
             target="_blank"
             rel="noreferrer"
             className="underline"

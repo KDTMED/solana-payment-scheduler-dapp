@@ -5,12 +5,17 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:local": "VITE_SOLANA_CLUSTER=localnet vite",
+    "dev:devnet": "VITE_SOLANA_CLUSTER=devnet vite",
+    "dev:mainnet": "VITE_SOLANA_CLUSTER=mainnet-beta vite",
     "build": "tsc && vite build",
+    "build:devnet": "VITE_SOLANA_CLUSTER=devnet tsc && VITE_SOLANA_CLUSTER=devnet vite build",
+    "build:mainnet": "VITE_SOLANA_CLUSTER=mainnet-beta tsc && VITE_SOLANA_CLUSTER=mainnet-beta vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "predeploy": "bun run build",
+    "predeploy": "bun run build:mainnet",
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
