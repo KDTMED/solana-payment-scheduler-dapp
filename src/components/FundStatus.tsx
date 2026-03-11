@@ -9,8 +9,10 @@ import {
 } from "@solana/web3.js";
 import {
   createTransferInstruction,
+  createAssociatedTokenAccountInstruction,
   getAssociatedTokenAddress,
   TOKEN_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import { Program, AnchorProvider, BN } from "@coral-xyz/anchor";
 import { FundStatus as FundStatusType, PaymentSchedule } from "../types";
@@ -20,6 +22,7 @@ import {
   TOKEN_DECIMALS,
   USDC_MINT_DEVNET,
   USDT_MINT_DEVNET,
+  MIN_GAS_LAMPORTS,
 } from "../constants";
 import { findPaymentSchedulePda } from "../utils/pda";
 import IDL from "../scheduled_transfer.json";
@@ -43,7 +46,10 @@ type PanelKey =
  * Convert a decimal string to raw token units without floating-point
  * precision loss.
  */
-function parseTokenAmount(input: string, decimals: number): bigint | null {
+function parseTokenAmount(
+  input: string,
+  decimals: number,
+): bigint | null {
   const trimmed = input.trim();
   if (!trimmed || trimmed === ".") return null;
   const parts = trimmed.split(".");
@@ -59,7 +65,12 @@ function parseTokenAmount(input: string, decimals: number): bigint | null {
 
 export function FundStatus({ status, schedule, onRefresh }: Props) {
   const { connection } = useConnection();
-  const { publicKey, sendTransaction } = useWallet();
+  const {
+    publicKey,
+    sendTransaction,
+    signTransaction,
+    signAllTransactions,
+  } = useWallet();
 
   const [topupUsdc, setTopupUsdc] = useState("");
   const [topupUsdt, setTopupUsdt] = useState("");
@@ -71,8 +82,67 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
   const [txSig, setTxSig] = useState<string | null>(null);
   const [activePanel, setActivePanel] = useState<PanelKey | null>(null);
 
+  // Per-panel inline validation errors
+  const [withdrawUsdcError, setWithdrawUsdcError] = useState<string | null>(
+    null,
+  );
+  const [withdrawUsdtError, setWithdrawUsdtError] = useState<string | null>(
+    null,
+  );
+  const [withdrawSolError, setWithdrawSolError] = useState<string | null>(
+    null,
+  );
+
   function togglePanel(key: PanelKey) {
     setActivePanel((prev) => (prev === key ? null : key));
+    // Clear errors when toggling panels
+    setWithdrawUsdcError(null);
+    setWithdrawUsdtError(null);
+    setWithdrawSolError(null);
+  }
+
+  function makeAnchorWallet() {
+    return {
+      publicKey,
+      sendTransaction,
+      signTransaction,
+      signAllTransactions,
+    } as any;
+  }
+
+  async function handleCreateAta(mint: PublicKey) {
+    if (!publicKey) return;
+
+    setBusy(true);
+    setTxSig(null);
+    try {
+      const [schedulePda] = findPaymentSchedulePda(publicKey);
+      const ata = await getAssociatedTokenAddress(
+        mint,
+        schedulePda,
+        true,
+      );
+
+      const tx = new Transaction().add(
+        createAssociatedTokenAccountInstruction(
+          publicKey,
+          ata,
+          schedulePda,
+          mint,
+          TOKEN_PROGRAM_ID,
+          ASSOCIATED_TOKEN_PROGRAM_ID,
+        ),
+      );
+
+      const sig = await sendTransaction(tx, connection);
+      await connection.confirmTransaction(sig, "confirmed");
+      setTxSig(sig);
+      onRefresh();
+    } catch (e: any) {
+      alert(e?.message ?? "Failed to create token account");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function handleTopupToken(
@@ -117,24 +187,37 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
   async function handleWithdrawToken(
     mint: PublicKey,
     sourceTokenAccount: PublicKey | null,
+    balance: bigint,
     rawInput: string,
     clearInput: () => void,
+    setError: (msg: string | null) => void,
   ) {
     if (!publicKey || !sourceTokenAccount) return;
+
     const amount = parseTokenAmount(rawInput, TOKEN_DECIMALS);
     if (amount === null || amount <= 0n) {
-      alert("Enter a valid positive amount.");
+      setError("Enter a valid positive amount.");
       return;
     }
+    // ── Balance guard ──────────────────────────────────────────────
+    if (amount > balance) {
+      setError(
+        `Insufficient balance. Available: ${formatTokenAmount(balance)}.`,
+      );
+      return;
+    }
+    setError(null);
 
     setBusy(true);
     setTxSig(null);
     try {
-      const wallet = { publicKey, sendTransaction } as any;
-      const provider = new AnchorProvider(connection, wallet, {
+      const provider = new AnchorProvider(connection, makeAnchorWallet(), {
         commitment: "confirmed",
       });
-      const program = new Program<ScheduledTransfer>(IDL as unknown as ScheduledTransfer, provider);
+      const program = new Program<ScheduledTransfer>(
+        IDL as unknown as ScheduledTransfer,
+        provider,
+      );
       const userAta = await getAssociatedTokenAddress(mint, publicKey);
 
       const sig = await program.methods
@@ -192,19 +275,39 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
     if (!publicKey) return;
     const raw = parseFloat(withdrawSol);
     if (isNaN(raw) || raw <= 0) {
-      alert("Enter a valid positive amount.");
+      setWithdrawSolError("Enter a valid positive amount.");
       return;
     }
+
+    const lamports = Math.round(raw * LAMPORTS_PER_SOL);
+    const solBalance = status?.solBalance ?? 0;
+
+    // ── Balance guard ──────────────────────────────────────────────
+    // The on-chain program always preserves the rent-exempt minimum, so
+    // the most the user can withdraw is (balance − MIN_GAS_LAMPORTS).
+    // We use MIN_GAS_LAMPORTS as a safe proxy for the rent-exempt reserve.
+    const withdrawable = Math.max(
+      0,
+      solBalance - Number(MIN_GAS_LAMPORTS),
+    );
+    if (lamports > withdrawable) {
+      setWithdrawSolError(
+        `Amount exceeds withdrawable balance. Max: ${formatSol(withdrawable)} SOL (rent-exempt minimum is always reserved).`,
+      );
+      return;
+    }
+    setWithdrawSolError(null);
 
     setBusy(true);
     setTxSig(null);
     try {
-      const wallet = { publicKey, sendTransaction } as any;
-      const provider = new AnchorProvider(connection, wallet, {
+      const provider = new AnchorProvider(connection, makeAnchorWallet(), {
         commitment: "confirmed",
       });
-      const program = new Program<ScheduledTransfer>(IDL as unknown as ScheduledTransfer, provider);
-      const lamports = Math.round(raw * LAMPORTS_PER_SOL);
+      const program = new Program<ScheduledTransfer>(
+        IDL as unknown as ScheduledTransfer,
+        provider,
+      );
 
       const sig = await program.methods
         .withdrawSol(new BN(lamports))
@@ -222,7 +325,6 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
     }
   }
 
-  // Determine if USDC or USDT is the "schedule token" for the required badge
   const scheduleTokenType = schedule?.tokenType ?? null;
 
   function tokenPanel(
@@ -236,6 +338,8 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
     withdrawValue: string,
     setWithdrawValue: (v: string) => void,
     mint: PublicKey,
+    withdrawError: string | null,
+    setWithdrawError: (msg: string | null) => void,
   ) {
     const isScheduleToken = scheduleTokenType === label;
     return (
@@ -257,6 +361,23 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
             </span>
           </p>
         )}
+
+        {status && !tokenAccount && (
+          <div className="rounded-md bg-amber-500/10 border border-amber-500/20 p-3 space-y-2">
+            <p className="text-xs text-amber-400">
+              No {label} token account exists for this schedule PDA yet.
+              Create one before you can top up or withdraw.
+            </p>
+            <button
+              onClick={() => handleCreateAta(mint)}
+              disabled={busy}
+              className="w-full py-1.5 rounded-md bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-sm text-white transition-colors"
+            >
+              {busy ? "Creating…" : `Create ${label} Account`}
+            </button>
+          </div>
+        )}
+
         <div className="flex gap-2 mt-2">
           <button
             onClick={() => togglePanel(topupKey)}
@@ -296,7 +417,7 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
             </button>
             {!tokenAccount && (
               <p className="text-xs text-amber-400">
-                No {label} token account found for this schedule PDA.
+                No {label} token account found. Create one above first.
               </p>
             )}
           </div>
@@ -304,19 +425,43 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
 
         {activePanel === withdrawKey && (
           <div className="mt-3 space-y-2">
+            {/* Available balance hint */}
+            {status && (
+              <p className="text-xs text-slate-500">
+                Available:{" "}
+                <span className="text-slate-300">
+                  {formatTokenAmount(balance)} {label}
+                </span>
+              </p>
+            )}
             <input
               type="number"
               min="0"
               step="any"
               value={withdrawValue}
-              onChange={(e) => setWithdrawValue(e.target.value)}
+              onChange={(e) => {
+                setWithdrawValue(e.target.value);
+                setWithdrawError(null);
+              }}
               placeholder={`Amount (${label})`}
-              className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-1.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500"
+              className={`w-full bg-slate-700 border rounded-md px-3 py-1.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 ${
+                withdrawError
+                  ? "border-red-500"
+                  : "border-slate-600"
+              }`}
             />
+            {withdrawError && (
+              <p className="text-xs text-red-400">{withdrawError}</p>
+            )}
             <button
               onClick={() =>
-                handleWithdrawToken(mint, tokenAccount, withdrawValue, () =>
-                  setWithdrawValue(""),
+                handleWithdrawToken(
+                  mint,
+                  tokenAccount,
+                  balance,
+                  withdrawValue,
+                  () => setWithdrawValue(""),
+                  setWithdrawError,
                 )
               }
               disabled={busy || !tokenAccount}
@@ -326,7 +471,7 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
             </button>
             {!tokenAccount && (
               <p className="text-xs text-amber-400">
-                No {label} token account found for this schedule PDA.
+                No {label} token account found. Create one above first.
               </p>
             )}
           </div>
@@ -353,6 +498,8 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
           withdrawUsdc,
           setWithdrawUsdc,
           USDC_MINT_DEVNET,
+          withdrawUsdcError,
+          setWithdrawUsdcError,
         )}
 
         {tokenPanel(
@@ -366,6 +513,8 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
           withdrawUsdt,
           setWithdrawUsdt,
           USDT_MINT_DEVNET,
+          withdrawUsdtError,
+          setWithdrawUsdtError,
         )}
 
         {/* SOL panel */}
@@ -426,15 +575,38 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
               <p className="text-xs text-slate-500">
                 Rent-exempt minimum is always preserved.
               </p>
+              {/* Withdrawable balance hint */}
+              {status && (
+                <p className="text-xs text-slate-500">
+                  Available:{" "}
+                  <span className="text-slate-300">
+                    {formatSol(
+                      Math.max(
+                        0,
+                        status.solBalance - Number(MIN_GAS_LAMPORTS),
+                      ),
+                    )}{" "}
+                    SOL
+                  </span>
+                </p>
+              )}
               <input
                 type="number"
                 min="0"
                 step="any"
                 value={withdrawSol}
-                onChange={(e) => setWithdrawSol(e.target.value)}
+                onChange={(e) => {
+                  setWithdrawSol(e.target.value);
+                  setWithdrawSolError(null);
+                }}
                 placeholder="Amount (SOL)"
-                className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-1.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500"
+                className={`w-full bg-slate-700 border rounded-md px-3 py-1.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 ${
+                  withdrawSolError ? "border-red-500" : "border-slate-600"
+                }`}
               />
+              {withdrawSolError && (
+                <p className="text-xs text-red-400">{withdrawSolError}</p>
+              )}
               <button
                 onClick={handleWithdrawSol}
                 disabled={busy}
