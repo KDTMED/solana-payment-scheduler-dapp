@@ -10,10 +10,11 @@ export interface ScheduledPayment {
 export interface PaymentSchedule {
   publicKey: PublicKey;
   authority: PublicKey;
+  scheduleId: bigint;
   recipient: PublicKey;
-  destinationTokenAccount: PublicKey;
   tokenType: TokenType;
   schedule: ScheduledPayment[];
+  executedCount: number;
   bump: number;
 }
 

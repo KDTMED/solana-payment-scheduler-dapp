@@ -3,16 +3,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { InitializeForm } from "./InitializeForm";
 
-// Mock getAssociatedTokenAddress so ATA derivation doesn't need real crypto
-vi.mock("@solana/spl-token", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@solana/spl-token")>();
-  return {
-    ...actual,
-    getAssociatedTokenAddress: vi.fn().mockResolvedValue({
-      toBase58: () => "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe1bJ",
-    }),
-  };
-});
 
 const VALID_RECIPIENT = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
 const onSuccess = vi.fn();
@@ -35,7 +25,7 @@ describe("InitializeForm", () => {
     expect(screen.getByText("Invalid public key format.")).toBeInTheDocument();
   });
 
-  it("clears inline error for valid public key", async () => {
+  it("clears inline error for valid public key", () => {
     render(<InitializeForm onSuccess={onSuccess} />);
     fireEvent.change(screen.getByPlaceholderText("Pubkey…"), {
       target: { value: "not-a-pubkey" },
@@ -45,10 +35,6 @@ describe("InitializeForm", () => {
       target: { value: VALID_RECIPIENT },
     });
     expect(screen.queryByText("Invalid public key format.")).not.toBeInTheDocument();
-    // Wait for the async ATA derivation effect to settle
-    await waitFor(() => {
-      expect(screen.getByText(/Destination ATA:/)).toBeInTheDocument();
-    });
   });
 
   it("shows USDC and USDT token type options", () => {
@@ -81,12 +67,8 @@ describe("InitializeForm", () => {
 
   it("shows 'Add at least one payment entry' error when entries are empty", async () => {
     render(<InitializeForm onSuccess={onSuccess} />);
-    // Set a valid recipient so destAta is derived and the handler proceeds to validate()
     fireEvent.change(screen.getByPlaceholderText("Pubkey…"), {
       target: { value: VALID_RECIPIENT },
-    });
-    await waitFor(() => {
-      expect(screen.getByText(/Destination ATA:/)).toBeInTheDocument();
     });
     fireEvent.submit(screen.getByText("Create Schedule").closest("form")!);
     await waitFor(() => {
@@ -101,22 +83,9 @@ describe("InitializeForm", () => {
     fireEvent.change(screen.getByPlaceholderText("Pubkey…"), {
       target: { value: mockPublicKey.toBase58() },
     });
-    await waitFor(() => {
-      expect(screen.getByText(/Destination ATA:/)).toBeInTheDocument();
-    });
     fireEvent.submit(screen.getByText("Create Schedule").closest("form")!);
     await waitFor(() => {
       expect(screen.getByText("Recipient cannot be your own wallet.")).toBeInTheDocument();
-    });
-  });
-
-  it("shows 'Destination ATA' preview when recipient is valid", async () => {
-    render(<InitializeForm onSuccess={onSuccess} />);
-    fireEvent.change(screen.getByPlaceholderText("Pubkey…"), {
-      target: { value: VALID_RECIPIENT },
-    });
-    await waitFor(() => {
-      expect(screen.getByText(/Destination ATA:/)).toBeInTheDocument();
     });
   });
 });

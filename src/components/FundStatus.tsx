@@ -24,7 +24,6 @@ import {
   USDT_MINT_DEVNET,
   MIN_GAS_LAMPORTS,
 } from "../constants";
-import { findPaymentSchedulePda } from "../utils/pda";
 import IDL from "../scheduled_transfer.json";
 import type { ScheduledTransfer } from "../scheduled_transfer";
 
@@ -111,12 +110,12 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
   }
 
   async function handleCreateAta(mint: PublicKey) {
-    if (!publicKey) return;
+    if (!publicKey || !schedule) return;
 
     setBusy(true);
     setTxSig(null);
     try {
-      const [schedulePda] = findPaymentSchedulePda(publicKey);
+      const schedulePda = schedule.publicKey;
       const ata = await getAssociatedTokenAddress(
         mint,
         schedulePda,
@@ -240,7 +239,7 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
   }
 
   async function handleTopupSol() {
-    if (!publicKey) return;
+    if (!publicKey || !schedule) return;
     const raw = parseFloat(topupSol);
     if (isNaN(raw) || raw <= 0) {
       alert("Enter a valid positive amount.");
@@ -250,7 +249,7 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
     setBusy(true);
     setTxSig(null);
     try {
-      const [schedulePda] = findPaymentSchedulePda(publicKey);
+      const schedulePda = schedule.publicKey;
       const lamports = Math.round(raw * LAMPORTS_PER_SOL);
       const tx = new Transaction().add(
         SystemProgram.transfer({

@@ -3,7 +3,6 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { getAccount, getAssociatedTokenAddress } from "@solana/spl-token";
 import { PaymentSchedule, FundStatus } from "../types";
 import { MIN_GAS_LAMPORTS, USDC_MINT_DEVNET, USDT_MINT_DEVNET } from "../constants";
-import { findPaymentSchedulePda } from "../utils/pda";
 
 export function useFundStatus(schedule: PaymentSchedule | null) {
   const { connection } = useConnection();
@@ -18,7 +17,11 @@ export function useFundStatus(schedule: PaymentSchedule | null) {
     }
 
     try {
-      const [schedulePda] = findPaymentSchedulePda(publicKey);
+      if (!schedule) {
+        setStatus(null);
+        return;
+      }
+      const schedulePda = schedule.publicKey;
 
       const solBalance = await connection.getBalance(schedulePda);
 

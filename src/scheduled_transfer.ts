@@ -56,9 +56,6 @@ export type ScheduledTransfer = {
     },
     {
       "name": "close",
-      "docs": [
-        "Closes the payment schedule PDA and returns its rent to the authority."
-      ],
       "discriminator": [
         98,
         165,
@@ -99,6 +96,11 @@ export type ScheduledTransfer = {
               {
                 "kind": "account",
                 "path": "authority"
+              },
+              {
+                "kind": "account",
+                "path": "payment_schedule.schedule_id",
+                "account": "paymentSchedule"
               }
             ]
           }
@@ -128,6 +130,39 @@ export type ScheduledTransfer = {
       ],
       "accounts": [
         {
+          "name": "scheduleCounter",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  99,
+                  104,
+                  101,
+                  100,
+                  117,
+                  108,
+                  101,
+                  95,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
           "name": "paymentSchedule",
           "writable": true,
           "pda": {
@@ -156,6 +191,11 @@ export type ScheduledTransfer = {
               {
                 "kind": "account",
                 "path": "authority"
+              },
+              {
+                "kind": "account",
+                "path": "schedule_counter.next_id",
+                "account": "scheduleCounter"
               }
             ]
           }
@@ -183,10 +223,6 @@ export type ScheduledTransfer = {
         },
         {
           "name": "recipient",
-          "type": "pubkey"
-        },
-        {
-          "name": "destinationTokenAccount",
           "type": "pubkey"
         },
         {
@@ -241,43 +277,19 @@ export type ScheduledTransfer = {
       "args": []
     },
     {
-      "name": "reportPaymentFailure",
-      "discriminator": [
-        112,
-        6,
-        186,
-        146,
-        60,
-        34,
-        72,
-        214
-      ],
-      "accounts": [
-        {
-          "name": "paymentSchedule"
-        },
-        {
-          "name": "caller",
-          "signer": true
-        }
-      ],
-      "args": [
-        {
-          "name": "paymentIndex",
-          "type": "u8"
-        },
-        {
-          "name": "reason",
-          "type": {
-            "defined": {
-              "name": "failureReason"
-            }
-          }
-        }
-      ]
-    },
-    {
       "name": "triggerPayment",
+      "docs": [
+        "Trigger execution of a due payment.",
+        "",
+        "This instruction is intentionally permissionless — any caller may",
+        "execute a payment on behalf of a schedule as long as it is due.",
+        "Funds are always transferred to the recipient's ATA derived from",
+        "the recipient and token type stored on-chain, so a permissionless",
+        "caller cannot redirect them.",
+        "",
+        "Emits `PaymentFailed` before returning an error if the payment cannot",
+        "be executed due to no payment being due or insufficient funds."
+      ],
       "discriminator": [
         47,
         8,
@@ -319,6 +331,11 @@ export type ScheduledTransfer = {
                 "kind": "account",
                 "path": "payment_schedule.authority",
                 "account": "paymentSchedule"
+              },
+              {
+                "kind": "account",
+                "path": "payment_schedule.schedule_id",
+                "account": "paymentSchedule"
               }
             ]
           }
@@ -358,11 +375,6 @@ export type ScheduledTransfer = {
     },
     {
       "name": "withdrawSol",
-      "docs": [
-        "Withdraw excess SOL lamports from the payment schedule PDA.",
-        "Rent-exempt minimum lamports are always preserved.",
-        "Can be called whether or not there are pending scheduled payments."
-      ],
       "discriminator": [
         145,
         131,
@@ -403,6 +415,11 @@ export type ScheduledTransfer = {
               {
                 "kind": "account",
                 "path": "authority"
+              },
+              {
+                "kind": "account",
+                "path": "payment_schedule.schedule_id",
+                "account": "paymentSchedule"
               }
             ]
           }
@@ -425,10 +442,6 @@ export type ScheduledTransfer = {
     },
     {
       "name": "withdrawTokens",
-      "docs": [
-        "Withdraw SPL tokens (USDC or USDT) from the PDA-owned source token account.",
-        "Can be called whether or not there are pending scheduled payments."
-      ],
       "discriminator": [
         2,
         4,
@@ -469,6 +482,11 @@ export type ScheduledTransfer = {
               {
                 "kind": "account",
                 "path": "authority"
+              },
+              {
+                "kind": "account",
+                "path": "payment_schedule.schedule_id",
+                "account": "paymentSchedule"
               }
             ]
           }
@@ -527,6 +545,19 @@ export type ScheduledTransfer = {
         124,
         204,
         75
+      ]
+    },
+    {
+      "name": "scheduleCounter",
+      "discriminator": [
+        1,
+        138,
+        178,
+        136,
+        96,
+        4,
+        89,
+        61
       ]
     }
   ],
@@ -613,43 +644,35 @@ export type ScheduledTransfer = {
   "errors": [
     {
       "code": 6000,
-      "name": "insufficientFunds",
-      "msg": "Insufficient funds for the next payment"
+      "name": "insufficientFunds"
     },
     {
       "code": 6001,
-      "name": "insufficientGasFunds",
-      "msg": "Insufficient funds to cover gas fees"
+      "name": "insufficientGasFunds"
     },
     {
       "code": 6002,
-      "name": "noPaymentsScheduled",
-      "msg": "No payments scheduled"
+      "name": "noPaymentsScheduled"
     },
     {
       "code": 6003,
-      "name": "noPaymentsDue",
-      "msg": "No payments due at this time"
+      "name": "noPaymentsDue"
     },
     {
       "code": 6004,
-      "name": "scheduleTooLarge",
-      "msg": "Schedule exceeds maximum of 50 payments"
+      "name": "scheduleTooLarge"
     },
     {
       "code": 6005,
-      "name": "invalidPaymentAmount",
-      "msg": "Payment amount must be greater than zero"
+      "name": "invalidPaymentAmount"
     },
     {
       "code": 6006,
-      "name": "invalidPaymentIndex",
-      "msg": "Payment index does not match expected next index"
+      "name": "invalidPaymentIndex"
     },
     {
       "code": 6007,
-      "name": "scheduleOverflow",
-      "msg": "Executed payment counter overflow"
+      "name": "scheduleOverflow"
     }
   ],
   "types": [
@@ -819,11 +842,11 @@ export type ScheduledTransfer = {
             "type": "pubkey"
           },
           {
-            "name": "recipient",
-            "type": "pubkey"
+            "name": "scheduleId",
+            "type": "u64"
           },
           {
-            "name": "destinationTokenAccount",
+            "name": "recipient",
             "type": "pubkey"
           },
           {
@@ -846,12 +869,27 @@ export type ScheduledTransfer = {
           },
           {
             "name": "executedCount",
-            "docs": [
-              "Monotonic counter tracking the number of executed payments.",
-              "Used to enforce deterministic `payment_index` values and prevent",
-              "PDA slot squatting on `PaymentRecord`."
-            ],
             "type": "u8"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "scheduleCounter",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "nextId",
+            "type": "u64"
           },
           {
             "name": "bump",

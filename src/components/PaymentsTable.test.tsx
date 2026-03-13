@@ -20,10 +20,11 @@ function makeSchedule(overrides?: Partial<PaymentSchedule>): PaymentSchedule {
   return {
     publicKey: SCHEDULE_PK,
     authority: AUTHORITY_PK,
+    scheduleId: 0n,
     recipient: RECIPIENT_PK,
-    destinationTokenAccount: RECIPIENT_PK,
     tokenType: "USDC",
     bump: 255,
+    executedCount: 0,
     schedule: [],
     ...overrides,
   };

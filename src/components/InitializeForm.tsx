@@ -1,14 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { Program, AnchorProvider, BN } from "@coral-xyz/anchor";
-import { getAssociatedTokenAddress } from "@solana/spl-token";
 import IDL from "../scheduled_transfer.json";
 import type { ScheduledTransfer } from "../scheduled_transfer";
 import {
   TOKEN_DECIMALS,
-  USDC_MINT_DEVNET,
-  USDT_MINT_DEVNET,
   MAX_SCHEDULE_ENTRIES,
 } from "../constants";
 
@@ -63,39 +60,12 @@ export function InitializeForm({ onSuccess }: Props) {
   const { connection } = useConnection();
   const wallet = useWallet();
   const [recipient, setRecipient] = useState("");
-  const [destAta, setDestAta] = useState<string | null>(null);
   const [tokenType, setTokenType] = useState<"USDC" | "USDT">("USDC");
   const [entries, setEntries] = useState<PaymentEntry[]>([
     { date: "", amount: "" },
   ]);
   const [busy, setBusy] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function derive() {
-      try {
-        const recipientKey = new PublicKey(recipient);
-        const mint =
-          tokenType === "USDC" ? USDC_MINT_DEVNET : USDT_MINT_DEVNET;
-        const ata = await getAssociatedTokenAddress(mint, recipientKey);
-        if (!cancelled) setDestAta(ata.toBase58());
-      } catch {
-        if (!cancelled) setDestAta(null);
-      }
-    }
-
-    if (recipient.length > 0 && isValidPubkey(recipient)) {
-      derive();
-    } else {
-      setDestAta(null);
-    }
-
-    return () => {
-      cancelled = true;
-    };
-  }, [recipient, tokenType]);
 
   function addEntry() {
     // FIX 6: Enforce MAX_SCHEDULE_ENTRIES on the client side
@@ -175,7 +145,7 @@ export function InitializeForm({ onSuccess }: Props) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!wallet.publicKey || !wallet.signTransaction || !destAta) return;
+    if (!wallet.publicKey || !wallet.signTransaction) return;
 
     const errors = validate();
     setValidationErrors(errors);
@@ -205,7 +175,6 @@ export function InitializeForm({ onSuccess }: Props) {
         .initialize(
           schedule,
           new PublicKey(recipient),
-          new PublicKey(destAta),
           { [tokenType.toLowerCase()]: {} },
         )
         .accounts({
@@ -251,14 +220,6 @@ export function InitializeForm({ onSuccess }: Props) {
           {recipient && !isValidPubkey(recipient) && (
             <p className="mt-1 text-xs text-red-400">
               Invalid public key format.
-            </p>
-          )}
-          {destAta && (
-            <p className="mt-1 text-xs text-slate-500">
-              Destination ATA:{" "}
-              <span className="font-mono text-slate-400">
-                {destAta.slice(0, 24)}…
-              </span>
             </p>
           )}
         </div>
@@ -340,7 +301,7 @@ export function InitializeForm({ onSuccess }: Props) {
 
         <button
           type="submit"
-          disabled={busy || !destAta}
+          disabled={busy}
           className="w-full py-2.5 rounded-lg bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-sm font-medium text-white transition-colors"
         >
           {busy ? "Creating…" : "Create Schedule"}

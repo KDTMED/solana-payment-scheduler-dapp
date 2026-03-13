@@ -29,10 +29,11 @@ function makeSchedule(tokenType: "USDC" | "USDT" = "USDC"): PaymentSchedule {
   return {
     publicKey: SCHEDULE_PK,
     authority: AUTHORITY_PK,
+    scheduleId: 0n,
     recipient: RECIPIENT_PK,
-    destinationTokenAccount: RECIPIENT_PK,
     tokenType,
     schedule: [],
+    executedCount: 0,
     bump: 255,
   };
 }

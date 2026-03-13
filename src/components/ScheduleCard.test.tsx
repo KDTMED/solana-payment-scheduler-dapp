@@ -13,13 +13,14 @@ function makeSchedule(overrides?: Partial<PaymentSchedule>): PaymentSchedule {
   return {
     publicKey: SCHEDULE_PK,
     authority: AUTHORITY_PK,
+    scheduleId: 0n,
     recipient: RECIPIENT_PK,
-    destinationTokenAccount: RECIPIENT_PK,
     tokenType: "USDC",
     schedule: [
       { timestamp: Date.now() / 1000 + 3600, amount: 5_000_000n },
       { timestamp: Date.now() / 1000 + 7200, amount: 3_000_000n },
     ],
+    executedCount: 0,
     bump: 255,
     ...overrides,
   };

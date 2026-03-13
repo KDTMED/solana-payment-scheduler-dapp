@@ -4,7 +4,7 @@ import { PublicKey, AccountInfo } from "@solana/web3.js";
 import { BorshAccountsCoder } from "@coral-xyz/anchor";
 import IDL from "../scheduled_transfer.json";
 import { PaymentSchedule, PaymentRecord } from "../types";
-import { findPaymentSchedulePda, findPaymentRecordPda } from "../utils/pda";
+import { findScheduleCounterPda, findPaymentSchedulePda, findPaymentRecordPda } from "../utils/pda";
 
 function decodeSchedule(
   pubkey: PublicKey,
@@ -12,18 +12,18 @@ function decodeSchedule(
 ): PaymentSchedule | null {
   try {
     const coder = new BorshAccountsCoder(IDL as any);
-    const data = coder.decode("PaymentSchedule", info.data);
+    const data = coder.decode("paymentSchedule", info.data);
     return {
       publicKey: pubkey,
       authority: data.authority,
+      scheduleId: BigInt(data.scheduleId.toString()),
       recipient: data.recipient,
-      destinationTokenAccount: data.destination_token_account,
-      tokenType:
-        data.token_type?.USDC !== undefined ? "USDC" : "USDT",
+      tokenType: data.tokenType?.usdc !== undefined ? "USDC" : "USDT",
       schedule: data.schedule.map((s: any) => ({
         timestamp: Number(s.timestamp),
         amount: BigInt(s.amount),
       })),
+      executedCount: data.executedCount,
       bump: data.bump,
     };
   } catch (e) {
@@ -38,7 +38,7 @@ function decodeRecord(
 ): PaymentRecord | null {
   try {
     const coder = new BorshAccountsCoder(IDL as any);
-    const data = coder.decode("PaymentRecord", info.data);
+    const data = coder.decode("paymentRecord", info.data);
     return {
       publicKey: pubkey,
       timestamp: Number(data.timestamp),
@@ -74,7 +74,26 @@ export function useSchedule() {
     setError(null);
 
     try {
-      const [schedulePda] = findPaymentSchedulePda(publicKey);
+      const coder = new BorshAccountsCoder(IDL as any);
+
+      // Resolve the latest schedule ID via the ScheduleCounter PDA
+      const [counterPda] = findScheduleCounterPda(publicKey);
+      const counterInfo = await connection.getAccountInfo(counterPda);
+      if (!counterInfo) {
+        setSchedule(null);
+        setRecords([]);
+        return;
+      }
+      const counterData = coder.decode("scheduleCounter", counterInfo.data);
+      const nextId = BigInt(counterData.nextId.toString());
+      if (nextId === 0n) {
+        setSchedule(null);
+        setRecords([]);
+        return;
+      }
+      const latestId = nextId - 1n;
+
+      const [schedulePda] = findPaymentSchedulePda(publicKey, latestId);
       const scheduleInfo = await connection.getAccountInfo(schedulePda);
 
       if (!scheduleInfo) {

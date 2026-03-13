@@ -93,9 +93,9 @@ export function ScheduleCard({ schedule, onClose }: Props) {
           </span>
         </div>
         <div>
-          <span className="text-slate-600">Destination ATA: </span>
+          <span className="text-slate-600">Schedule ID: </span>
           <span className="font-mono text-slate-400">
-            {schedule.destinationTokenAccount?.toBase58().slice(0, 20) ?? "—"}…
+            {schedule.scheduleId.toString()}
           </span>
         </div>
       </div>
