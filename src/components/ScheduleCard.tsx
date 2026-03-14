@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { Program, AnchorProvider } from "@coral-xyz/anchor";
+import { getAssociatedTokenAddress } from "@solana/spl-token";
 import { PaymentSchedule } from "../types";
 import { formatTokenAmount } from "../utils/format";
+import { USDC_MINT, USDT_MINT } from "../constants";
 import IDL from "../idl/scheduled_transfer.json";
 import type { ScheduledTransfer } from "../idl/scheduled_transfer";
 
@@ -34,10 +36,16 @@ export function ScheduleCard({ schedule, onClose }: Props) {
       });
       const program = new Program<ScheduledTransfer>(IDL as unknown as ScheduledTransfer, provider);
 
+      const mint = schedule.tokenType === "USDC" ? USDC_MINT : USDT_MINT;
+      const sourceTokenAccount = await getAssociatedTokenAddress(mint, schedule.publicKey, true);
+      const destinationTokenAccount = await getAssociatedTokenAddress(mint, wallet.publicKey);
+
       await program.methods
         .close()
         .accountsPartial({
           paymentSchedule: schedule.publicKey,
+          sourceTokenAccount,
+          destinationTokenAccount,
           authority: wallet.publicKey,
         })
         .rpc();

@@ -106,12 +106,24 @@ export type ScheduledTransfer = {
           }
         },
         {
+          "name": "sourceTokenAccount",
+          "writable": true
+        },
+        {
+          "name": "destinationTokenAccount",
+          "writable": true
+        },
+        {
           "name": "authority",
           "writable": true,
           "signer": true,
           "relations": [
             "paymentSchedule"
           ]
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
       ],
       "args": []
@@ -426,73 +438,6 @@ export type ScheduledTransfer = {
       ]
     },
     {
-      "name": "withdrawSol",
-      "discriminator": [
-        145,
-        131,
-        74,
-        136,
-        65,
-        137,
-        42,
-        38
-      ],
-      "accounts": [
-        {
-          "name": "paymentSchedule",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  97,
-                  121,
-                  109,
-                  101,
-                  110,
-                  116,
-                  95,
-                  115,
-                  99,
-                  104,
-                  101,
-                  100,
-                  117,
-                  108,
-                  101
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "authority"
-              },
-              {
-                "kind": "account",
-                "path": "payment_schedule.schedule_id",
-                "account": "paymentSchedule"
-              }
-            ]
-          }
-        },
-        {
-          "name": "authority",
-          "writable": true,
-          "signer": true,
-          "relations": [
-            "paymentSchedule"
-          ]
-        }
-      ],
-      "args": [
-        {
-          "name": "amount",
-          "type": "u64"
-        }
-      ]
-    },
-    {
       "name": "withdrawTokens",
       "discriminator": [
         2,
@@ -651,19 +596,6 @@ export type ScheduledTransfer = {
         205,
         208,
         112
-      ]
-    },
-    {
-      "name": "solWithdrawn",
-      "discriminator": [
-        145,
-        249,
-        69,
-        48,
-        206,
-        86,
-        91,
-        66
       ]
     },
     {
@@ -913,26 +845,6 @@ export type ScheduledTransfer = {
           {
             "name": "timestamp",
             "type": "i64"
-          },
-          {
-            "name": "amount",
-            "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "solWithdrawn",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "schedule",
-            "type": "pubkey"
-          },
-          {
-            "name": "authority",
-            "type": "pubkey"
           },
           {
             "name": "amount",
