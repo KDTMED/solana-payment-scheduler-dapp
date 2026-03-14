@@ -8,6 +8,7 @@ import {
   TOKEN_DECIMALS,
   MAX_SCHEDULE_ENTRIES,
 } from "../constants";
+import { findScheduleCounterPda } from "../utils/pda";
 
 interface Props {
   onSuccess: () => void;
@@ -170,6 +171,17 @@ export function InitializeForm({ onSuccess }: Props) {
             amount: new BN(amount.toString()),
           };
         });
+
+      // initialize_counter must be called once per authority before creating
+      // the first schedule. Check if the counter PDA already exists.
+      const [counterPda] = findScheduleCounterPda(wallet.publicKey);
+      const counterInfo = await connection.getAccountInfo(counterPda);
+      if (!counterInfo) {
+        await program.methods
+          .initializeCounter()
+          .accounts({ authority: wallet.publicKey })
+          .rpc();
+      }
 
       await program.methods
         .initialize(

@@ -203,7 +203,10 @@ export type ScheduledTransfer = {
         {
           "name": "authority",
           "writable": true,
-          "signer": true
+          "signer": true,
+          "relations": [
+            "scheduleCounter"
+          ]
         },
         {
           "name": "systemProgram",
@@ -234,6 +237,68 @@ export type ScheduledTransfer = {
           }
         }
       ]
+    },
+    {
+      "name": "initializeCounter",
+      "docs": [
+        "Initialize the per-authority counter. Must be called once before",
+        "creating any schedules for a given authority."
+      ],
+      "discriminator": [
+        67,
+        89,
+        100,
+        87,
+        231,
+        172,
+        35,
+        124
+      ],
+      "accounts": [
+        {
+          "name": "scheduleCounter",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  99,
+                  104,
+                  101,
+                  100,
+                  117,
+                  108,
+                  101,
+                  95,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
     },
     {
       "name": "notifyFundsStatus",
@@ -349,21 +414,8 @@ export type ScheduledTransfer = {
           "writable": true
         },
         {
-          "name": "paymentRecord",
-          "writable": true
-        },
-        {
-          "name": "caller",
-          "writable": true,
-          "signer": true
-        },
-        {
           "name": "tokenProgram",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        },
-        {
-          "name": "systemProgram",
-          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
@@ -521,19 +573,6 @@ export type ScheduledTransfer = {
     }
   ],
   "accounts": [
-    {
-      "name": "paymentRecord",
-      "discriminator": [
-        202,
-        168,
-        56,
-        249,
-        127,
-        226,
-        86,
-        226
-      ]
-    },
     {
       "name": "paymentSchedule",
       "discriminator": [
@@ -796,38 +835,6 @@ export type ScheduledTransfer = {
           {
             "name": "failedAt",
             "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "paymentRecord",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "timestamp",
-            "type": "i64"
-          },
-          {
-            "name": "amount",
-            "type": "u64"
-          },
-          {
-            "name": "recipient",
-            "type": "pubkey"
-          },
-          {
-            "name": "executedAt",
-            "type": "i64"
-          },
-          {
-            "name": "paymentIndex",
-            "type": "u8"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
           }
         ]
       }

@@ -4,7 +4,7 @@ import { PublicKey, AccountInfo } from "@solana/web3.js";
 import { BorshAccountsCoder } from "@coral-xyz/anchor";
 import IDL from "../scheduled_transfer.json";
 import { PaymentSchedule, PaymentRecord } from "../types";
-import { findScheduleCounterPda, findPaymentSchedulePda, findPaymentRecordPda } from "../utils/pda";
+import { findScheduleCounterPda, findPaymentSchedulePda } from "../utils/pda";
 
 function decodeSchedule(
   pubkey: PublicKey,
@@ -32,27 +32,6 @@ function decodeSchedule(
   }
 }
 
-function decodeRecord(
-  pubkey: PublicKey,
-  info: AccountInfo<Buffer>,
-): PaymentRecord | null {
-  try {
-    const coder = new BorshAccountsCoder(IDL as any);
-    const data = coder.decode("paymentRecord", info.data);
-    return {
-      publicKey: pubkey,
-      timestamp: Number(data.timestamp),
-      amount: BigInt(data.amount),
-      recipient: data.recipient,
-      executedAt: Number(data.executedAt),
-      paymentIndex: data.paymentIndex,
-      bump: data.bump,
-    };
-  } catch (e) {
-    console.error("Failed to decode PaymentRecord:", e);
-    return null;
-  }
-}
 
 export function useSchedule() {
   const { connection } = useConnection();
@@ -110,22 +89,9 @@ export function useSchedule() {
         return;
       }
 
-      // Probe payment record PDAs for indices 0..99
-      const recordKeys: PublicKey[] = Array.from({ length: 100 }, (_, i) => {
-        const [pda] = findPaymentRecordPda(schedulePda, i);
-        return pda;
-      });
-
-      const infos = await connection.getMultipleAccountsInfo(recordKeys);
-      const allRecords: PaymentRecord[] = [];
-      infos.forEach((info, idx) => {
-        if (!info) return;
-        const rec = decodeRecord(recordKeys[idx], info);
-        if (rec) allRecords.push(rec);
-      });
-
-      allRecords.sort((a, b) => b.executedAt - a.executedAt);
-      setRecords(allRecords);
+      // Payment history is emitted as on-chain events (PaymentExecuted) and
+      // not stored in dedicated PDA accounts in the current IDL version.
+      setRecords([]);
     } catch (e: any) {
       setError(e?.message ?? "Unknown error");
     } finally {

@@ -20,8 +20,8 @@ import { StatusBadge } from "./StatusBadge";
 import { formatTokenAmount, formatSol } from "../utils/format";
 import {
   TOKEN_DECIMALS,
-  USDC_MINT_DEVNET,
-  USDT_MINT_DEVNET,
+  USDC_MINT,
+  USDT_MINT,
   MIN_GAS_LAMPORTS,
 } from "../constants";
 import IDL from "../scheduled_transfer.json";
@@ -191,7 +191,7 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
     clearInput: () => void,
     setError: (msg: string | null) => void,
   ) {
-    if (!publicKey || !sourceTokenAccount) return;
+    if (!publicKey || !sourceTokenAccount || !schedule) return;
 
     const amount = parseTokenAmount(rawInput, TOKEN_DECIMALS);
     if (amount === null || amount <= 0n) {
@@ -221,7 +221,8 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
 
       const sig = await program.methods
         .withdrawTokens(new BN(amount.toString()))
-        .accounts({
+        .accountsPartial({
+          paymentSchedule: schedule.publicKey,
           sourceTokenAccount,
           destinationTokenAccount: userAta,
         })
@@ -271,7 +272,7 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
   }
 
   async function handleWithdrawSol() {
-    if (!publicKey) return;
+    if (!publicKey || !schedule) return;
     const raw = parseFloat(withdrawSol);
     if (isNaN(raw) || raw <= 0) {
       setWithdrawSolError("Enter a valid positive amount.");
@@ -310,7 +311,9 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
 
       const sig = await program.methods
         .withdrawSol(new BN(lamports))
-        .accounts({})
+        .accountsPartial({
+          paymentSchedule: schedule.publicKey,
+        })
         .rpc();
 
       await connection.confirmTransaction(sig, "confirmed");
@@ -496,7 +499,7 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
           setTopupUsdc,
           withdrawUsdc,
           setWithdrawUsdc,
-          USDC_MINT_DEVNET,
+          USDC_MINT,
           withdrawUsdcError,
           setWithdrawUsdcError,
         )}
@@ -511,7 +514,7 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
           setTopupUsdt,
           withdrawUsdt,
           setWithdrawUsdt,
-          USDT_MINT_DEVNET,
+          USDT_MINT,
           withdrawUsdtError,
           setWithdrawUsdtError,
         )}

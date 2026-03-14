@@ -25,7 +25,7 @@ export function ScheduleCard({ schedule, onClose }: Props) {
   );
 
   async function handleClose() {
-    if (!wallet.publicKey || !wallet.signTransaction) return;
+    if (!wallet.publicKey || !wallet.signTransaction || !schedule) return;
 
     setBusy(true);
     try {
@@ -36,7 +36,8 @@ export function ScheduleCard({ schedule, onClose }: Props) {
 
       await program.methods
         .close()
-        .accounts({
+        .accountsPartial({
+          paymentSchedule: schedule.publicKey,
           authority: wallet.publicKey,
         })
         .rpc();

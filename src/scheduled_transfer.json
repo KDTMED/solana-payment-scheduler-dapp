@@ -197,7 +197,10 @@
         {
           "name": "authority",
           "writable": true,
-          "signer": true
+          "signer": true,
+          "relations": [
+            "schedule_counter"
+          ]
         },
         {
           "name": "system_program",
@@ -228,6 +231,68 @@
           }
         }
       ]
+    },
+    {
+      "name": "initialize_counter",
+      "docs": [
+        "Initialize the per-authority counter. Must be called once before",
+        "creating any schedules for a given authority."
+      ],
+      "discriminator": [
+        67,
+        89,
+        100,
+        87,
+        231,
+        172,
+        35,
+        124
+      ],
+      "accounts": [
+        {
+          "name": "schedule_counter",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  99,
+                  104,
+                  101,
+                  100,
+                  117,
+                  108,
+                  101,
+                  95,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
     },
     {
       "name": "notify_funds_status",
@@ -343,21 +408,8 @@
           "writable": true
         },
         {
-          "name": "payment_record",
-          "writable": true
-        },
-        {
-          "name": "caller",
-          "writable": true,
-          "signer": true
-        },
-        {
           "name": "token_program",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
@@ -515,19 +567,6 @@
     }
   ],
   "accounts": [
-    {
-      "name": "PaymentRecord",
-      "discriminator": [
-        202,
-        168,
-        56,
-        249,
-        127,
-        226,
-        86,
-        226
-      ]
-    },
     {
       "name": "PaymentSchedule",
       "discriminator": [
@@ -790,38 +829,6 @@
           {
             "name": "failed_at",
             "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "PaymentRecord",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "timestamp",
-            "type": "i64"
-          },
-          {
-            "name": "amount",
-            "type": "u64"
-          },
-          {
-            "name": "recipient",
-            "type": "pubkey"
-          },
-          {
-            "name": "executed_at",
-            "type": "i64"
-          },
-          {
-            "name": "payment_index",
-            "type": "u8"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
           }
         ]
       }
