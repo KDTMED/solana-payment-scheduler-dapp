@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { getAccount, getAssociatedTokenAddress } from "@solana/spl-token";
 import { PaymentSchedule, FundStatus } from "../types";
-import { MIN_GAS_LAMPORTS, USDC_MINT_DEVNET, USDT_MINT_DEVNET } from "../constants";
+import { MIN_GAS_LAMPORTS, USDC_MINT, USDT_MINT } from "../constants";
 
 export function useFundStatus(schedule: PaymentSchedule | null) {
   const { connection } = useConnection();
@@ -30,7 +30,7 @@ export function useFundStatus(schedule: PaymentSchedule | null) {
       let usdcTokenAccount = null;
       try {
         const usdcAta = await getAssociatedTokenAddress(
-          USDC_MINT_DEVNET,
+          USDC_MINT,
           schedulePda,
           true, // allowOwnerOffCurve — PDA is off-curve
         );
@@ -46,7 +46,7 @@ export function useFundStatus(schedule: PaymentSchedule | null) {
       let usdtTokenAccount = null;
       try {
         const usdtAta = await getAssociatedTokenAddress(
-          USDT_MINT_DEVNET,
+          USDT_MINT,
           schedulePda,
           true,
         );

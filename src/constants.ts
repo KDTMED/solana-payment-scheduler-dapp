@@ -29,8 +29,3 @@ const USDT_MINTS: Record<string, string> = {
 
 export const USDC_MINT = new PublicKey(USDC_MINTS[CLUSTER]);
 export const USDT_MINT = new PublicKey(USDT_MINTS[CLUSTER]);
-
-// Keep these aliases so existing imports still work without changes,
-// but they now resolve to the correct cluster.
-export const USDC_MINT_DEVNET = USDC_MINT;
-export const USDT_MINT_DEVNET = USDT_MINT;
