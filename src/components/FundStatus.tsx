@@ -488,36 +488,36 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
         Fund Status
       </h2>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {tokenPanel(
-          "USDC",
-          status?.usdcBalance ?? 0n,
-          status?.usdcTokenAccount ?? null,
-          "topup-usdc",
-          "withdraw-usdc",
-          topupUsdc,
-          setTopupUsdc,
-          withdrawUsdc,
-          setWithdrawUsdc,
-          USDC_MINT,
-          withdrawUsdcError,
-          setWithdrawUsdcError,
-        )}
-
-        {tokenPanel(
-          "USDT",
-          status?.usdtBalance ?? 0n,
-          status?.usdtTokenAccount ?? null,
-          "topup-usdt",
-          "withdraw-usdt",
-          topupUsdt,
-          setTopupUsdt,
-          withdrawUsdt,
-          setWithdrawUsdt,
-          USDT_MINT,
-          withdrawUsdtError,
-          setWithdrawUsdtError,
-        )}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {scheduleTokenType === "USDC"
+          ? tokenPanel(
+              "USDC",
+              status?.usdcBalance ?? 0n,
+              status?.usdcTokenAccount ?? null,
+              "topup-usdc",
+              "withdraw-usdc",
+              topupUsdc,
+              setTopupUsdc,
+              withdrawUsdc,
+              setWithdrawUsdc,
+              USDC_MINT,
+              withdrawUsdcError,
+              setWithdrawUsdcError,
+            )
+          : tokenPanel(
+              "USDT",
+              status?.usdtBalance ?? 0n,
+              status?.usdtTokenAccount ?? null,
+              "topup-usdt",
+              "withdraw-usdt",
+              topupUsdt,
+              setTopupUsdt,
+              withdrawUsdt,
+              setWithdrawUsdt,
+              USDT_MINT,
+              withdrawUsdtError,
+              setWithdrawUsdtError,
+            )}
 
         {/* SOL panel */}
         <div className="rounded-lg bg-slate-800 p-4 space-y-2">
