@@ -3,7 +3,7 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey, AccountInfo } from "@solana/web3.js";
 import { BorshAccountsCoder } from "@coral-xyz/anchor";
 import IDL from "../idl/scheduled_transfer.json";
-import { PaymentSchedule, PaymentRecord } from "../types";
+import { PaymentSchedule } from "../types";
 import { findScheduleCounterPda, findPaymentSchedulePda } from "../utils/pda";
 
 function decodeSchedule(
@@ -32,20 +32,17 @@ function decodeSchedule(
   }
 }
 
-
-export function useSchedule() {
+export function useSchedules() {
   const { connection } = useConnection();
   const { publicKey } = useWallet();
 
-  const [schedule, setSchedule] = useState<PaymentSchedule | null>(null);
-  const [records, setRecords] = useState<PaymentRecord[]>([]);
+  const [schedules, setSchedules] = useState<PaymentSchedule[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!publicKey) {
-      setSchedule(null);
-      setRecords([]);
+      setSchedules([]);
       return;
     }
 
@@ -55,43 +52,39 @@ export function useSchedule() {
     try {
       const coder = new BorshAccountsCoder(IDL as any);
 
-      // Resolve the latest schedule ID via the ScheduleCounter PDA
       const [counterPda] = findScheduleCounterPda(publicKey);
       const counterInfo = await connection.getAccountInfo(counterPda);
       if (!counterInfo) {
-        setSchedule(null);
-        setRecords([]);
+        setSchedules([]);
         return;
       }
       const counterData = coder.decode("ScheduleCounter", counterInfo.data);
       const nextId = BigInt((counterData.next_id ?? counterData.nextId).toString());
       if (nextId === 0n) {
-        setSchedule(null);
-        setRecords([]);
-        return;
-      }
-      const latestId = nextId - 1n;
-
-      const [schedulePda] = findPaymentSchedulePda(publicKey, latestId);
-      const scheduleInfo = await connection.getAccountInfo(schedulePda);
-
-      if (!scheduleInfo) {
-        setSchedule(null);
-        setRecords([]);
+        setSchedules([]);
         return;
       }
 
-      const decoded = decodeSchedule(schedulePda, scheduleInfo);
-      setSchedule(decoded);
-
-      if (!decoded) {
-        setRecords([]);
-        return;
+      // Fetch all schedule PDAs in parallel
+      const pdas: [PublicKey, bigint][] = [];
+      for (let i = 0n; i < nextId; i++) {
+        const [pda] = findPaymentSchedulePda(publicKey, i);
+        pdas.push([pda, i]);
       }
 
-      // Payment history is emitted as on-chain events (PaymentExecuted) and
-      // not stored in dedicated PDA accounts in the current IDL version.
-      setRecords([]);
+      const accountInfos = await connection.getMultipleAccountsInfo(
+        pdas.map(([pda]) => pda),
+      );
+
+      const decoded: PaymentSchedule[] = [];
+      for (let i = 0; i < accountInfos.length; i++) {
+        const info = accountInfos[i];
+        if (!info) continue; // closed schedule
+        const schedule = decodeSchedule(pdas[i][0], info);
+        if (schedule) decoded.push(schedule);
+      }
+
+      setSchedules(decoded);
     } catch (e: any) {
       setError(e?.message ?? "Unknown error");
     } finally {
@@ -103,5 +96,5 @@ export function useSchedule() {
     refresh();
   }, [refresh]);
 
-  return { schedule, records, loading, error, refresh };
+  return { schedules, loading, error, refresh };
 }

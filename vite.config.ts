@@ -9,7 +9,6 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
   },
-  base: "/solana-payment-scheduler-dapp/", // e.g. "/scheduled-transfer-ui/"
   plugins: [
     react(),
     nodePolyfills({

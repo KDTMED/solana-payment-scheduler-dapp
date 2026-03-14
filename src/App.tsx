@@ -7,25 +7,18 @@ import {
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
 import { SolflareWalletAdapter } from "@solana/wallet-adapter-solflare";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import { getEndpoint } from "./config";
 import { Header } from "./components/Header";
-import { ScheduleCard } from "./components/ScheduleCard";
-import { FundStatus } from "./components/FundStatus";
-import { PaymentsTable } from "./components/PaymentsTable";
+import { ScheduleList } from "./components/ScheduleList";
 import { InitializeForm } from "./components/InitializeForm";
-import { useSchedule } from "./hooks/useSchedule";
-import { useFundStatus } from "./hooks/useFundStatus";
+import { useSchedules } from "./hooks/useSchedule";
+import { ScheduleDetail } from "./pages/ScheduleDetail";
 
-function Dashboard() {
+function Home() {
   const { publicKey } = useWallet();
-  const { schedule, records, loading, error, refresh } = useSchedule();
-  const { status, refresh: refreshFunds } = useFundStatus(schedule);
-
-  function handleRefresh() {
-    refresh();
-    refreshFunds();
-  }
+  const { schedules, loading, error, refresh } = useSchedules();
 
   if (!publicKey) {
     return (
@@ -37,7 +30,7 @@ function Dashboard() {
           Connect your wallet
         </h2>
         <p className="text-slate-500 text-sm">
-          Connect to view and manage your payment schedule.
+          Connect to view and manage your payment schedules.
         </p>
       </div>
     );
@@ -48,7 +41,7 @@ function Dashboard() {
       <div className="flex items-center justify-center py-32">
         <div className="flex items-center gap-3 text-slate-400">
           <div className="w-5 h-5 border-2 border-slate-600 border-t-brand-500 rounded-full animate-spin" />
-          Loading schedule…
+          Loading schedules…
         </div>
       </div>
     );
@@ -66,40 +59,18 @@ function Dashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-white">
-          {schedule ? "Your Schedule" : "No Schedule Found"}
+          Your Schedules
         </h2>
         <button
-          onClick={handleRefresh}
+          onClick={refresh}
           className="text-xs text-slate-500 hover:text-white transition-colors flex items-center gap-1.5"
         >
           <span>⟳</span> Refresh
         </button>
       </div>
 
-      {schedule ? (
-        <>
-          <ScheduleCard schedule={schedule} onClose={handleRefresh} />
-          <FundStatus
-            status={status}
-            schedule={schedule}
-            onRefresh={handleRefresh}
-          />
-          <PaymentsTable
-            schedule={schedule}
-            records={records}
-            tokenType={schedule.tokenType}
-          />
-        </>
-      ) : (
-        <>
-          <InitializeForm onSuccess={handleRefresh} />
-          <FundStatus
-            status={status}
-            schedule={schedule}
-            onRefresh={handleRefresh}
-          />
-        </>
-      )}
+      <ScheduleList schedules={schedules} />
+      <InitializeForm onSuccess={refresh} />
     </div>
   );
 }
@@ -112,20 +83,25 @@ export default function App() {
   );
 
   return (
-    <ConnectionProvider
-      endpoint={endpoint}
-      config={{ commitment: "confirmed" }}
-    >
-      <WalletProvider wallets={wallets} autoConnect>
-        <WalletModalProvider>
-          <div className="min-h-screen bg-slate-950">
-            <Header />
-            <main className="max-w-5xl mx-auto px-4 py-8">
-              <Dashboard />
-            </main>
-          </div>
-        </WalletModalProvider>
-      </WalletProvider>
-    </ConnectionProvider>
+    <BrowserRouter>
+      <ConnectionProvider
+        endpoint={endpoint}
+        config={{ commitment: "confirmed" }}
+      >
+        <WalletProvider wallets={wallets} autoConnect>
+          <WalletModalProvider>
+            <div className="min-h-screen bg-slate-950">
+              <Header />
+              <main className="max-w-5xl mx-auto px-4 py-8">
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/schedule/:id" element={<ScheduleDetail />} />
+                </Routes>
+              </main>
+            </div>
+          </WalletModalProvider>
+        </WalletProvider>
+      </ConnectionProvider>
+    </BrowserRouter>
   );
 }
