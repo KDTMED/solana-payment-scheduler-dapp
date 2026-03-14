@@ -117,4 +117,50 @@ describe("useFundStatus", () => {
 
     expect(result.current.status!.isSufficient).toBe(false);
   });
+
+  it("uses USDT balance for sufficiency check on USDT schedule", async () => {
+    mockConnection.getBalance.mockResolvedValue(100_000_000);
+    mockGetAccount.mockResolvedValue({ amount: 10_000_000n });
+
+    const { result } = renderHook(() => useFundStatus(makeSchedule("USDT")));
+
+    await waitFor(() => {
+      expect(result.current.status).not.toBeNull();
+    });
+
+    expect(result.current.status!.usdtBalance).toBe(10_000_000n);
+    expect(result.current.status!.isSufficient).toBe(true);
+  });
+
+  it("marks isSufficient=true when no payments remain", async () => {
+    mockConnection.getBalance.mockResolvedValue(100_000_000);
+    mockGetAccount.mockResolvedValue({ amount: 0n });
+
+    const sched = makeSchedule("USDC");
+    sched.schedule = []; // no payments
+
+    const { result } = renderHook(() => useFundStatus(sched));
+
+    await waitFor(() => {
+      expect(result.current.status).not.toBeNull();
+    });
+
+    expect(result.current.status!.requiredForNext).toBeNull();
+    expect(result.current.status!.isSufficient).toBe(true);
+  });
+
+  it("refresh can be called manually", async () => {
+    mockConnection.getBalance.mockResolvedValue(100_000_000);
+    mockGetAccount.mockResolvedValue({ amount: 5_000_000n });
+
+    const { result } = renderHook(() => useFundStatus(makeSchedule("USDC")));
+
+    await waitFor(() => {
+      expect(result.current.status).not.toBeNull();
+    });
+
+    const callsBefore = (mockConnection.getBalance as any).mock.calls.length;
+    await result.current.refresh();
+    expect(mockConnection.getBalance).toHaveBeenCalledTimes(callsBefore + 1);
+  });
 });

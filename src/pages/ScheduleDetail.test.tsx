@@ -116,4 +116,94 @@ describe("ScheduleDetail", () => {
 
     expect(screen.getByText(/Back to schedules/)).toBeInTheDocument();
   });
+
+  it("shows error message when fetching fails", async () => {
+    (mockConnection as any).getAccountInfo.mockRejectedValue(new Error("RPC down"));
+
+    render(
+      <MemoryRouter initialEntries={["/schedule/0"]}>
+        <ScheduleDetail />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("RPC down")).toBeInTheDocument();
+    });
+  });
+
+  it("shows loading spinner initially", () => {
+    (mockConnection as any).getAccountInfo.mockReturnValue(new Promise(() => {})); // never resolves
+
+    render(
+      <MemoryRouter initialEntries={["/schedule/0"]}>
+        <ScheduleDetail />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/Loading schedule/)).toBeInTheDocument();
+  });
+
+  it("shows all child components and refresh button when schedule loads", async () => {
+    const AUTHORITY = new PublicKey("So11111111111111111111111111111111111111112");
+    const RECIPIENT = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+
+    (mockConnection as any).getAccountInfo.mockResolvedValue({
+      data: Buffer.from([]),
+      executable: false,
+      lamports: 1000000,
+      owner: new PublicKey("11111111111111111111111111111111"),
+    });
+
+    mockDecode.mockReturnValue({
+      authority: AUTHORITY,
+      schedule_id: { toString: () => "0" },
+      recipient: RECIPIENT,
+      token_type: { USDT: {} },
+      schedule: [],
+      executed_count: 0,
+      bump: 255,
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/schedule/0"]}>
+        <ScheduleDetail />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("schedule-card")).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId("fund-status")).toBeInTheDocument();
+    expect(screen.getByTestId("payments-table")).toBeInTheDocument();
+    expect(screen.getByText("↻")).toBeInTheDocument();
+    expect(screen.getAllByText(/Back to schedules/).length).toBeGreaterThan(0);
+  });
+});
+
+describe("ScheduleDetail — no wallet", () => {
+  beforeEach(() => {
+    mockNavigate.mockReset();
+    (mockConnection as any).getAccountInfo = vi.fn();
+  });
+
+  it("shows connect wallet message when wallet not connected", async () => {
+    // Temporarily override useWallet to return null publicKey
+    const walletMock = await import("../test/walletMock");
+    const original = walletMock.mockWallet.publicKey;
+    (walletMock.mockWallet as any).publicKey = null;
+
+    render(
+      <MemoryRouter initialEntries={["/schedule/0"]}>
+        <ScheduleDetail />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/Connect your wallet/)).toBeInTheDocument();
+    });
+
+    // Restore
+    (walletMock.mockWallet as any).publicKey = original;
+  });
 });

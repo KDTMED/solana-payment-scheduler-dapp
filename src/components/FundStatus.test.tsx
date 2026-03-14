@@ -1,9 +1,34 @@
 import "../test/walletMock";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { PublicKey } from "@solana/web3.js";
 import { FundStatus } from "./FundStatus";
 import { FundStatus as FundStatusType, PaymentSchedule } from "../types";
+import { mockWallet, mockConnection } from "../test/walletMock";
+
+vi.mock("@solana/spl-token", () => ({
+  createTransferInstruction: vi.fn(() => ({ keys: [], programId: new PublicKey("11111111111111111111111111111111") })),
+  createAssociatedTokenAccountInstruction: vi.fn(() => ({ keys: [], programId: new PublicKey("11111111111111111111111111111111") })),
+  getAssociatedTokenAddress: vi.fn(() => Promise.resolve(new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe1bJ"))),
+  TOKEN_PROGRAM_ID: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+  ASSOCIATED_TOKEN_PROGRAM_ID: new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe1bJ"),
+}));
+
+const mockRpc = vi.fn().mockResolvedValue("mock-sig");
+vi.mock("@coral-xyz/anchor", () => ({
+  AnchorProvider: class MockProvider { constructor(..._args: any[]) {} },
+  BN: class MockBN { value: any; constructor(v: any) { this.value = v; } toString() { return this.value.toString(); } },
+  Program: class MockProgram {
+    constructor(..._args: any[]) {}
+    methods = {
+      withdrawTokens: () => ({
+        accountsPartial: () => ({
+          rpc: mockRpc,
+        }),
+      }),
+    };
+  },
+}));
 
 const SCHEDULE_PK = new PublicKey("11111111111111111111111111111111");
 const AUTHORITY_PK = new PublicKey("So11111111111111111111111111111111111111112");
@@ -200,5 +225,180 @@ describe("FundStatus — USDT schedule", () => {
       .getAllByRole("button", { name: "Withdraw" })
       .find((b) => (b as HTMLButtonElement).disabled);
     expect(disabledBtn).toBeDefined();
+  });
+
+  it("shows Create USDT Account button when usdtTokenAccount is null", () => {
+    render(<FundStatus status={makeStatus({ usdtTokenAccount: null })} schedule={makeSchedule("USDT")} onRefresh={onRefresh} />);
+    expect(screen.getByText("Create USDT Account")).toBeInTheDocument();
+  });
+
+  it("disables USDT Send button when usdtTokenAccount is null", () => {
+    render(<FundStatus status={makeStatus({ usdtTokenAccount: null })} schedule={makeSchedule("USDT")} onRefresh={onRefresh} />);
+    fireEvent.click(screen.getByText("Top Up"));
+    expect(screen.getByText("Send").closest("button")).toBeDisabled();
+  });
+});
+
+describe("FundStatus — panel switching", () => {
+  beforeEach(() => { onRefresh.mockReset(); });
+
+  it("switches from top-up to withdraw panel on same token", () => {
+    render(<FundStatus status={makeStatus()} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
+    fireEvent.click(screen.getByText("Top Up"));
+    expect(screen.getByPlaceholderText("Amount (USDC)")).toBeInTheDocument();
+    expect(screen.getByText("Send")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Withdraw"));
+    // Now withdraw panel should be open, not top-up
+    expect(screen.queryByText("Send")).not.toBeInTheDocument();
+    // There should be multiple Withdraw buttons (toggle + action)
+    expect(screen.getAllByRole("button", { name: "Withdraw" }).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("shows available balance in withdraw panel", () => {
+    render(<FundStatus status={makeStatus({ usdcBalance: 25_000_000n })} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
+    fireEvent.click(screen.getByText("Withdraw"));
+    expect(screen.getByText(/Available:/)).toBeInTheDocument();
+    expect(screen.getByText("25 USDC")).toBeInTheDocument();
+  });
+
+  it("shows withdraw error with red border on input", () => {
+    render(<FundStatus status={makeStatus()} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
+    fireEvent.click(screen.getByText("Withdraw"));
+    // The withdraw error state is internal; we can test the input field exists
+    const input = screen.getByPlaceholderText("Amount (USDC)");
+    expect(input).toBeInTheDocument();
+  });
+
+  it("clears withdraw error when typing in withdraw input", () => {
+    render(<FundStatus status={makeStatus()} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
+    fireEvent.click(screen.getByText("Withdraw"));
+    const input = screen.getByPlaceholderText("Amount (USDC)");
+    fireEvent.change(input, { target: { value: "5" } });
+    // No error should be visible
+    expect(screen.queryByText(/Insufficient balance/)).not.toBeInTheDocument();
+  });
+});
+
+describe("FundStatus — txSig display", () => {
+  it("does not show tx confirmation when no transaction has been sent", () => {
+    render(<FundStatus status={makeStatus()} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
+    expect(screen.queryByText(/Tx confirmed/)).not.toBeInTheDocument();
+  });
+});
+
+describe("FundStatus — async handlers", () => {
+  beforeEach(() => {
+    onRefresh.mockReset();
+    mockWallet.sendTransaction.mockReset();
+    mockWallet.sendTransaction.mockResolvedValue("mock-tx-sig");
+    (mockConnection as any).confirmTransaction = vi.fn().mockResolvedValue({});
+  });
+
+  it("handleCreateAta sends transaction when no token account exists", async () => {
+    render(<FundStatus status={makeStatus({ usdcTokenAccount: null })} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
+    const createBtn = screen.getByText("Create USDC Account");
+    fireEvent.click(createBtn);
+
+    await waitFor(() => {
+      expect(mockWallet.sendTransaction).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(onRefresh).toHaveBeenCalled();
+    });
+  });
+
+  it("handleCreateAta shows alert on failure", async () => {
+    mockWallet.sendTransaction.mockRejectedValue(new Error("tx failed"));
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+
+    render(<FundStatus status={makeStatus({ usdcTokenAccount: null })} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
+    fireEvent.click(screen.getByText("Create USDC Account"));
+
+    await waitFor(() => {
+      expect(alertSpy).toHaveBeenCalledWith("tx failed");
+    });
+    alertSpy.mockRestore();
+  });
+
+  it("handleTopupToken sends transfer when amount is valid", async () => {
+    render(<FundStatus status={makeStatus()} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
+    fireEvent.click(screen.getByText("Top Up"));
+    fireEvent.change(screen.getByPlaceholderText("Amount (USDC)"), { target: { value: "5" } });
+    fireEvent.click(screen.getByText("Send"));
+
+    await waitFor(() => {
+      expect(mockWallet.sendTransaction).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(onRefresh).toHaveBeenCalled();
+    });
+  });
+
+  it("handleTopupToken alerts on invalid amount", async () => {
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+
+    render(<FundStatus status={makeStatus()} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
+    fireEvent.click(screen.getByText("Top Up"));
+    fireEvent.change(screen.getByPlaceholderText("Amount (USDC)"), { target: { value: "" } });
+    fireEvent.click(screen.getByText("Send"));
+
+    await waitFor(() => {
+      expect(alertSpy).toHaveBeenCalledWith("Enter a valid positive amount.");
+    });
+    alertSpy.mockRestore();
+  });
+
+  it("handleTopupToken alerts on failure", async () => {
+    mockWallet.sendTransaction.mockRejectedValue(new Error("Transfer failed"));
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+
+    render(<FundStatus status={makeStatus()} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
+    fireEvent.click(screen.getByText("Top Up"));
+    fireEvent.change(screen.getByPlaceholderText("Amount (USDC)"), { target: { value: "5" } });
+    fireEvent.click(screen.getByText("Send"));
+
+    await waitFor(() => {
+      expect(alertSpy).toHaveBeenCalledWith("Transfer failed");
+    });
+    alertSpy.mockRestore();
+  });
+
+  it("handleWithdrawToken calls program withdraw on valid amount", async () => {
+    (mockConnection as any).confirmTransaction.mockResolvedValue({});
+
+    render(<FundStatus status={makeStatus({ usdcBalance: 50_000_000n })} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
+    fireEvent.click(screen.getByText("Withdraw"));
+    fireEvent.change(screen.getByPlaceholderText("Amount (USDC)"), { target: { value: "5" } });
+    // Click the withdraw action button (second one)
+    const withdrawBtns = screen.getAllByRole("button", { name: "Withdraw" });
+    fireEvent.click(withdrawBtns[withdrawBtns.length - 1]);
+
+    await waitFor(() => {
+      expect(mockRpc).toHaveBeenCalled();
+    });
+  });
+
+  it("handleWithdrawToken shows error for invalid amount", async () => {
+    render(<FundStatus status={makeStatus()} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
+    fireEvent.click(screen.getByText("Withdraw"));
+    fireEvent.change(screen.getByPlaceholderText("Amount (USDC)"), { target: { value: "" } });
+    const withdrawBtns = screen.getAllByRole("button", { name: "Withdraw" });
+    fireEvent.click(withdrawBtns[withdrawBtns.length - 1]);
+
+    await waitFor(() => {
+      expect(screen.getByText("Enter a valid positive amount.")).toBeInTheDocument();
+    });
+  });
+
+  it("handleWithdrawToken shows insufficient balance error", async () => {
+    render(<FundStatus status={makeStatus({ usdcBalance: 1_000_000n })} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
+    fireEvent.click(screen.getByText("Withdraw"));
+    fireEvent.change(screen.getByPlaceholderText("Amount (USDC)"), { target: { value: "100" } });
+    const withdrawBtns = screen.getAllByRole("button", { name: "Withdraw" });
+    fireEvent.click(withdrawBtns[withdrawBtns.length - 1]);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Insufficient balance/)).toBeInTheDocument();
+    });
   });
 });

@@ -101,4 +101,48 @@ describe("useSchedules", () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.error).toBe("Network error");
   });
+
+  it("decodes USDT token type", async () => {
+    mockConnection.getAccountInfo.mockResolvedValue({ data: Buffer.alloc(8) });
+
+    mockDecode
+      .mockReturnValueOnce({ next_id: { toString: () => "1" } })
+      .mockReturnValueOnce({
+        authority: mockPublicKey,
+        schedule_id: { toString: () => "0" },
+        recipient: mockPublicKey,
+        token_type: { USDT: {} },
+        schedule: [{ timestamp: { toString: () => "1700000000" }, amount: 3_000_000n }],
+        executed_count: 1,
+        bump: 254,
+      });
+
+    mockConnection.getMultipleAccountsInfo.mockResolvedValue([
+      { data: Buffer.alloc(100) },
+    ]);
+
+    const { result } = renderHook(() => useSchedules());
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.schedules).toHaveLength(1);
+    expect(result.current.schedules[0].tokenType).toBe("USDT");
+    expect(result.current.schedules[0].executedCount).toBe(1);
+  });
+
+  it("skips schedules that fail to decode", async () => {
+    mockConnection.getAccountInfo.mockResolvedValue({ data: Buffer.alloc(8) });
+
+    mockDecode
+      .mockReturnValueOnce({ next_id: { toString: () => "1" } })
+      .mockImplementationOnce(() => { throw new Error("bad data"); });
+
+    mockConnection.getMultipleAccountsInfo.mockResolvedValue([
+      { data: Buffer.alloc(100) },
+    ]);
+
+    const { result } = renderHook(() => useSchedules());
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.schedules).toEqual([]);
+  });
 });

@@ -3,7 +3,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { InitializeForm } from "./InitializeForm";
 
-
 const VALID_RECIPIENT = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
 const onSuccess = vi.fn();
 
@@ -86,6 +85,150 @@ describe("InitializeForm", () => {
     fireEvent.submit(screen.getByText("Create Schedule").closest("form")!);
     await waitFor(() => {
       expect(screen.getByText("Recipient cannot be your own wallet.")).toBeInTheDocument();
+    });
+  });
+
+  it("can switch token type to USDT", () => {
+    render(<InitializeForm onSuccess={onSuccess} />);
+    const usdt = screen.getByDisplayValue("USDT") as HTMLInputElement;
+    fireEvent.click(usdt);
+    expect(usdt.checked).toBe(true);
+    // Amount placeholder should reflect USDT
+    expect(screen.getByPlaceholderText("Amount (USDT)")).toBeInTheDocument();
+  });
+
+  it("updates a payment entry date", () => {
+    render(<InitializeForm onSuccess={onSuccess} />);
+    const dateInputs = screen.getAllByDisplayValue("");
+    const dateInput = dateInputs.find(
+      (el) => (el as HTMLInputElement).type === "datetime-local",
+    )!;
+    fireEvent.change(dateInput, { target: { value: "2030-01-01T12:00" } });
+    expect((dateInput as HTMLInputElement).value).toBe("2030-01-01T12:00");
+  });
+
+  it("updates a payment entry amount", () => {
+    render(<InitializeForm onSuccess={onSuccess} />);
+    const amountInput = screen.getByPlaceholderText(/Amount/);
+    fireEvent.change(amountInput, { target: { value: "100" } });
+    expect((amountInput as HTMLInputElement).value).toBe("100");
+  });
+
+  it("shows entry count and max", () => {
+    render(<InitializeForm onSuccess={onSuccess} />);
+    expect(screen.getByText("(1/50)")).toBeInTheDocument();
+  });
+
+  it("shows validation error for past date entry", async () => {
+    render(<InitializeForm onSuccess={onSuccess} />);
+    fireEvent.change(screen.getByPlaceholderText("Pubkey…"), {
+      target: { value: VALID_RECIPIENT },
+    });
+    // Set a past date and valid amount
+    const dateInputs = screen.getAllByDisplayValue("");
+    const dateInput = dateInputs.find(
+      (el) => (el as HTMLInputElement).type === "datetime-local",
+    )!;
+    fireEvent.change(dateInput, { target: { value: "2020-01-01T12:00" } });
+    const amountInput = screen.getByPlaceholderText(/Amount/);
+    fireEvent.change(amountInput, { target: { value: "10" } });
+
+    fireEvent.submit(screen.getByText("Create Schedule").closest("form")!);
+    await waitFor(() => {
+      expect(screen.getByText(/Scheduled date must be in the future/)).toBeInTheDocument();
+    });
+  });
+
+  it("shows validation error for invalid amount", async () => {
+    render(<InitializeForm onSuccess={onSuccess} />);
+    fireEvent.change(screen.getByPlaceholderText("Pubkey…"), {
+      target: { value: VALID_RECIPIENT },
+    });
+    const dateInputs = screen.getAllByDisplayValue("");
+    const dateInput = dateInputs.find(
+      (el) => (el as HTMLInputElement).type === "datetime-local",
+    )!;
+    fireEvent.change(dateInput, { target: { value: "2030-01-01T12:00" } });
+    const amountInput = screen.getByPlaceholderText(/Amount/);
+    fireEvent.change(amountInput, { target: { value: "0" } });
+
+    fireEvent.submit(screen.getByText("Create Schedule").closest("form")!);
+    await waitFor(() => {
+      expect(screen.getByText(/Invalid or zero amount/)).toBeInTheDocument();
+    });
+  });
+
+  it("shows validation error for invalid recipient public key on submit", async () => {
+    render(<InitializeForm onSuccess={onSuccess} />);
+    fireEvent.change(screen.getByPlaceholderText("Pubkey…"), {
+      target: { value: "not-valid" },
+    });
+    fireEvent.submit(screen.getByText("Create Schedule").closest("form")!);
+    await waitFor(() => {
+      expect(screen.getByText("Invalid recipient public key.")).toBeInTheDocument();
+    });
+  });
+
+  it("submits form and shows validation errors clear on valid re-submit", async () => {
+    // First submit with empty entries to trigger validation
+    render(<InitializeForm onSuccess={onSuccess} />);
+    fireEvent.submit(screen.getByText("Create Schedule").closest("form")!);
+    await waitFor(() => {
+      expect(screen.getByText(/Invalid recipient public key/)).toBeInTheDocument();
+    });
+
+    // Fix the recipient
+    fireEvent.change(screen.getByPlaceholderText("Pubkey…"), {
+      target: { value: VALID_RECIPIENT },
+    });
+    // Submit again - should still show entry errors
+    fireEvent.submit(screen.getByText("Create Schedule").closest("form")!);
+    await waitFor(() => {
+      expect(screen.getByText(/Add at least one payment entry/)).toBeInTheDocument();
+    });
+    // Recipient error should be gone
+    expect(screen.queryByText(/Invalid recipient public key/)).not.toBeInTheDocument();
+  });
+
+  it("shows multiple validation errors at once", async () => {
+    render(<InitializeForm onSuccess={onSuccess} />);
+    // Set invalid recipient and a past date with zero amount
+    fireEvent.change(screen.getByPlaceholderText("Pubkey…"), {
+      target: { value: "bad" },
+    });
+    const dateInputs = screen.getAllByDisplayValue("");
+    const dateInput = dateInputs.find(
+      (el) => (el as HTMLInputElement).type === "datetime-local",
+    )!;
+    fireEvent.change(dateInput, { target: { value: "2020-01-01T12:00" } });
+    const amountInput = screen.getByPlaceholderText(/Amount/);
+    fireEvent.change(amountInput, { target: { value: "0" } });
+
+    fireEvent.submit(screen.getByText("Create Schedule").closest("form")!);
+    await waitFor(() => {
+      expect(screen.getByText("Invalid recipient public key.")).toBeInTheDocument();
+      expect(screen.getByText(/Scheduled date must be in the future/)).toBeInTheDocument();
+      expect(screen.getByText(/Invalid or zero amount/)).toBeInTheDocument();
+    });
+  });
+
+  it("does not show no-entry error when entries have date and amount", async () => {
+    render(<InitializeForm onSuccess={onSuccess} />);
+    fireEvent.change(screen.getByPlaceholderText("Pubkey…"), {
+      target: { value: VALID_RECIPIENT },
+    });
+    const dateInputs = screen.getAllByDisplayValue("");
+    const dateInput = dateInputs.find(
+      (el) => (el as HTMLInputElement).type === "datetime-local",
+    )!;
+    fireEvent.change(dateInput, { target: { value: "2030-06-15T10:00" } });
+    const amountInput = screen.getByPlaceholderText(/Amount/);
+    fireEvent.change(amountInput, { target: { value: "5.5" } });
+
+    fireEvent.submit(screen.getByText("Create Schedule").closest("form")!);
+    // Should not show "Add at least one" since we have a valid entry
+    await waitFor(() => {
+      expect(screen.queryByText(/Add at least one payment entry/)).not.toBeInTheDocument();
     });
   });
 });
