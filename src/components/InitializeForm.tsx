@@ -8,7 +8,7 @@ import {
   TOKEN_DECIMALS,
   MAX_SCHEDULE_ENTRIES,
 } from "../constants";
-import { findScheduleCounterPda } from "../utils/pda";
+import { findScheduleCounterPda, findPaymentSchedulePda } from "../utils/pda";
 
 interface Props {
   onSuccess: () => void;
@@ -176,12 +176,19 @@ export function InitializeForm({ onSuccess }: Props) {
       // the first schedule. Check if the counter PDA already exists.
       const [counterPda] = findScheduleCounterPda(wallet.publicKey);
       const counterInfo = await connection.getAccountInfo(counterPda);
+      let nextId = 0n;
       if (!counterInfo) {
         await program.methods
           .initializeCounter()
           .accounts({ authority: wallet.publicKey })
-          .rpc();
+          .rpc({ commitment: "confirmed" });
+        // Freshly created counter starts at 0
+      } else {
+        const counter = program.coder.accounts.decode("scheduleCounter", counterInfo.data);
+        nextId = BigInt(counter.nextId.toString());
       }
+
+      const [paymentSchedulePda] = findPaymentSchedulePda(wallet.publicKey, nextId);
 
       await program.methods
         .initialize(
@@ -189,8 +196,10 @@ export function InitializeForm({ onSuccess }: Props) {
           new PublicKey(recipient),
           { [tokenType.toLowerCase()]: {} },
         )
-        .accounts({
+        .accountsPartial({
           authority: wallet.publicKey,
+          scheduleCounter: counterPda,
+          paymentSchedule: paymentSchedulePda,
         })
         .rpc();
 

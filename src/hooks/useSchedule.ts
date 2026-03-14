@@ -12,18 +12,18 @@ function decodeSchedule(
 ): PaymentSchedule | null {
   try {
     const coder = new BorshAccountsCoder(IDL as any);
-    const data = coder.decode("paymentSchedule", info.data);
+    const data = coder.decode("PaymentSchedule", info.data);
     return {
       publicKey: pubkey,
       authority: data.authority,
-      scheduleId: BigInt(data.scheduleId.toString()),
+      scheduleId: BigInt(data.schedule_id.toString()),
       recipient: data.recipient,
-      tokenType: data.tokenType?.usdc !== undefined ? "USDC" : "USDT",
+      tokenType: data.token_type?.USDC !== undefined ? "USDC" : "USDT",
       schedule: data.schedule.map((s: any) => ({
         timestamp: Number(s.timestamp),
         amount: BigInt(s.amount),
       })),
-      executedCount: data.executedCount,
+      executedCount: data.executed_count,
       bump: data.bump,
     };
   } catch (e) {
@@ -63,8 +63,8 @@ export function useSchedule() {
         setRecords([]);
         return;
       }
-      const counterData = coder.decode("scheduleCounter", counterInfo.data);
-      const nextId = BigInt(counterData.nextId.toString());
+      const counterData = coder.decode("ScheduleCounter", counterInfo.data);
+      const nextId = BigInt((counterData.next_id ?? counterData.nextId).toString());
       if (nextId === 0n) {
         setSchedule(null);
         setRecords([]);
