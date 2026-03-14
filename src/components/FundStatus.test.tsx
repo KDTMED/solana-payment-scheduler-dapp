@@ -43,42 +43,27 @@ const onRefresh = vi.fn();
 describe("FundStatus — null state (no schedule)", () => {
   beforeEach(() => { onRefresh.mockReset(); });
 
-  it("renders USDT panel and SOL panel when schedule is null (defaults to USDT)", () => {
+  it("renders USDT panel when schedule is null (defaults to USDT)", () => {
     render(<FundStatus status={null} schedule={null} onRefresh={onRefresh} />);
     // When schedule is null, scheduleTokenType is null, so the else branch renders USDT
     expect(screen.getByText("USDT Balance")).toBeInTheDocument();
-    expect(screen.getByText("SOL Balance")).toBeInTheDocument();
   });
 
-  it("shows — for balances when status is null", () => {
+  it("shows — for balance when status is null", () => {
     render(<FundStatus status={null} schedule={null} onRefresh={onRefresh} />);
-    const dashes = screen.getAllByText("—");
-    expect(dashes.length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText("—")).toBeInTheDocument();
   });
 
-  it("shows Top Up and Withdraw buttons for both panels when status is null", () => {
+  it("shows Top Up and Withdraw buttons when status is null", () => {
     render(<FundStatus status={null} schedule={null} onRefresh={onRefresh} />);
-    expect(screen.getAllByText("Top Up")).toHaveLength(2);
-    expect(screen.getAllByText("Withdraw")).toHaveLength(2);
+    expect(screen.getByText("Top Up")).toBeInTheDocument();
+    expect(screen.getByText("Withdraw")).toBeInTheDocument();
   });
 
   it("toggles USDT top-up input when status is null (no schedule defaults to USDT)", () => {
     render(<FundStatus status={null} schedule={null} onRefresh={onRefresh} />);
-    fireEvent.click(screen.getAllByText("Top Up")[0]);
+    fireEvent.click(screen.getByText("Top Up"));
     expect(screen.getByPlaceholderText("Amount (USDT)")).toBeInTheDocument();
-  });
-
-  it("toggles SOL top-up input when status is null", () => {
-    render(<FundStatus status={null} schedule={null} onRefresh={onRefresh} />);
-    fireEvent.click(screen.getAllByText("Top Up")[1]);
-    expect(screen.getByPlaceholderText("Amount (SOL)")).toBeInTheDocument();
-  });
-
-  it("toggles SOL withdraw input when status is null", () => {
-    render(<FundStatus status={null} schedule={null} onRefresh={onRefresh} />);
-    fireEvent.click(screen.getAllByText("Withdraw")[1]);
-    expect(screen.getByPlaceholderText("Amount (SOL)")).toBeInTheDocument();
-    expect(screen.getByText(/Rent-exempt minimum/)).toBeInTheDocument();
   });
 });
 
@@ -89,18 +74,12 @@ describe("FundStatus — USDC schedule", () => {
     render(<FundStatus status={makeStatus()} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
     expect(screen.getByText("USDC Balance")).toBeInTheDocument();
     expect(screen.queryByText("USDT Balance")).not.toBeInTheDocument();
-    expect(screen.getByText("SOL Balance")).toBeInTheDocument();
   });
 
   it("renders USDC balance", () => {
     render(<FundStatus status={makeStatus()} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
     // usdcBalance 10_000_000n with 6 decimals = "10"
     expect(screen.getByText("10")).toBeInTheDocument();
-  });
-
-  it("renders SOL balance", () => {
-    render(<FundStatus status={makeStatus()} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
-    expect(screen.getByText(/0\.1000 SOL/)).toBeInTheDocument();
   });
 
   it("shows OK badge when isSufficient=true", () => {
@@ -124,64 +103,36 @@ describe("FundStatus — USDC schedule", () => {
     expect(screen.queryByText(/Next payment requires/)).not.toBeInTheDocument();
   });
 
-  it("shows isGasSufficient Low badge on SOL panel", () => {
-    render(<FundStatus status={makeStatus({ isGasSufficient: false })} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
-    expect(screen.getByText("Low")).toBeInTheDocument();
-  });
-
   it("toggles USDC top-up panel on button click", () => {
     render(<FundStatus status={makeStatus()} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
     expect(screen.queryByPlaceholderText("Amount (USDC)")).not.toBeInTheDocument();
-    fireEvent.click(screen.getAllByText("Top Up")[0]);
+    fireEvent.click(screen.getByText("Top Up"));
     expect(screen.getByPlaceholderText("Amount (USDC)")).toBeInTheDocument();
   });
 
   it("collapses USDC top-up panel on second click", () => {
     render(<FundStatus status={makeStatus()} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
-    fireEvent.click(screen.getAllByText("Top Up")[0]);
+    fireEvent.click(screen.getByText("Top Up"));
     expect(screen.getByPlaceholderText("Amount (USDC)")).toBeInTheDocument();
-    fireEvent.click(screen.getAllByText("Top Up")[0]);
+    fireEvent.click(screen.getByText("Top Up"));
     expect(screen.queryByPlaceholderText("Amount (USDC)")).not.toBeInTheDocument();
-  });
-
-  it("toggles SOL top-up panel on button click", () => {
-    render(<FundStatus status={makeStatus()} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
-    expect(screen.queryByPlaceholderText("Amount (SOL)")).not.toBeInTheDocument();
-    fireEvent.click(screen.getAllByText("Top Up")[1]);
-    expect(screen.getByPlaceholderText("Amount (SOL)")).toBeInTheDocument();
   });
 
   it("toggles USDC withdraw panel on button click", () => {
     render(<FundStatus status={makeStatus()} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
-    fireEvent.click(screen.getAllByText("Withdraw")[0]);
+    fireEvent.click(screen.getByText("Withdraw"));
     expect(screen.getByPlaceholderText("Amount (USDC)")).toBeInTheDocument();
-  });
-
-  it("toggles SOL withdraw panel on button click", () => {
-    render(<FundStatus status={makeStatus()} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
-    fireEvent.click(screen.getAllByText("Withdraw")[1]);
-    expect(screen.getByPlaceholderText("Amount (SOL)")).toBeInTheDocument();
-    expect(screen.getByText(/Rent-exempt minimum/)).toBeInTheDocument();
-  });
-
-  it("opening one panel closes another", () => {
-    render(<FundStatus status={makeStatus()} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
-    fireEvent.click(screen.getAllByText("Top Up")[0]);
-    expect(screen.getByPlaceholderText("Amount (USDC)")).toBeInTheDocument();
-    fireEvent.click(screen.getAllByText("Top Up")[1]);
-    expect(screen.queryByPlaceholderText("Amount (USDC)")).not.toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Amount (SOL)")).toBeInTheDocument();
   });
 
   it("shows warning when usdcTokenAccount is null in top-up panel", () => {
     render(<FundStatus status={makeStatus({ usdcTokenAccount: null })} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
-    fireEvent.click(screen.getAllByText("Top Up")[0]);
+    fireEvent.click(screen.getByText("Top Up"));
     expect(screen.getByText(/No USDC token account found/)).toBeInTheDocument();
   });
 
   it("shows warning when usdcTokenAccount is null in withdraw panel", () => {
     render(<FundStatus status={makeStatus({ usdcTokenAccount: null })} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
-    fireEvent.click(screen.getAllByText("Withdraw")[0]);
+    fireEvent.click(screen.getByText("Withdraw"));
     expect(screen.getByText(/No USDC token account found/)).toBeInTheDocument();
   });
 
@@ -192,7 +143,7 @@ describe("FundStatus — USDC schedule", () => {
 
   it("disables USDC Send button when usdcTokenAccount is null", () => {
     render(<FundStatus status={makeStatus({ usdcTokenAccount: null })} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
-    fireEvent.click(screen.getAllByText("Top Up")[0]);
+    fireEvent.click(screen.getByText("Top Up"));
     expect(screen.getByText("Send").closest("button")).toBeDisabled();
   });
 });
@@ -204,7 +155,6 @@ describe("FundStatus — USDT schedule", () => {
     render(<FundStatus status={makeStatus()} schedule={makeSchedule("USDT")} onRefresh={onRefresh} />);
     expect(screen.getByText("USDT Balance")).toBeInTheDocument();
     expect(screen.queryByText("USDC Balance")).not.toBeInTheDocument();
-    expect(screen.getByText("SOL Balance")).toBeInTheDocument();
   });
 
   it("renders USDT balance", () => {
@@ -221,31 +171,31 @@ describe("FundStatus — USDT schedule", () => {
   it("toggles USDT top-up panel on button click", () => {
     render(<FundStatus status={makeStatus()} schedule={makeSchedule("USDT")} onRefresh={onRefresh} />);
     expect(screen.queryByPlaceholderText("Amount (USDT)")).not.toBeInTheDocument();
-    fireEvent.click(screen.getAllByText("Top Up")[0]);
+    fireEvent.click(screen.getByText("Top Up"));
     expect(screen.getByPlaceholderText("Amount (USDT)")).toBeInTheDocument();
   });
 
   it("toggles USDT withdraw panel on button click", () => {
     render(<FundStatus status={makeStatus()} schedule={makeSchedule("USDT")} onRefresh={onRefresh} />);
-    fireEvent.click(screen.getAllByText("Withdraw")[0]);
+    fireEvent.click(screen.getByText("Withdraw"));
     expect(screen.getByPlaceholderText("Amount (USDT)")).toBeInTheDocument();
   });
 
   it("shows warning when usdtTokenAccount is null in top-up panel", () => {
     render(<FundStatus status={makeStatus({ usdtTokenAccount: null })} schedule={makeSchedule("USDT")} onRefresh={onRefresh} />);
-    fireEvent.click(screen.getAllByText("Top Up")[0]);
+    fireEvent.click(screen.getByText("Top Up"));
     expect(screen.getByText(/No USDT token account found/)).toBeInTheDocument();
   });
 
   it("shows warning when usdtTokenAccount is null in withdraw panel", () => {
     render(<FundStatus status={makeStatus({ usdtTokenAccount: null })} schedule={makeSchedule("USDT")} onRefresh={onRefresh} />);
-    fireEvent.click(screen.getAllByText("Withdraw")[0]);
+    fireEvent.click(screen.getByText("Withdraw"));
     expect(screen.getByText(/No USDT token account found/)).toBeInTheDocument();
   });
 
   it("disables USDT Withdraw button when usdtTokenAccount is null", () => {
     render(<FundStatus status={makeStatus({ usdtTokenAccount: null })} schedule={makeSchedule("USDT")} onRefresh={onRefresh} />);
-    fireEvent.click(screen.getAllByText("Withdraw")[0]);
+    fireEvent.click(screen.getByText("Withdraw"));
     const disabledBtn = screen
       .getAllByRole("button", { name: "Withdraw" })
       .find((b) => (b as HTMLButtonElement).disabled);

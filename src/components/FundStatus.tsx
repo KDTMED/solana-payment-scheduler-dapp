@@ -2,9 +2,7 @@ import { explorerClusterParam } from "../config";
 import { useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import {
-  SystemProgram,
   Transaction,
-  LAMPORTS_PER_SOL,
   PublicKey,
 } from "@solana/web3.js";
 import {
@@ -17,12 +15,11 @@ import {
 import { Program, AnchorProvider, BN } from "@coral-xyz/anchor";
 import { FundStatus as FundStatusType, PaymentSchedule } from "../types";
 import { StatusBadge } from "./StatusBadge";
-import { formatTokenAmount, formatSol } from "../utils/format";
+import { formatTokenAmount } from "../utils/format";
 import {
   TOKEN_DECIMALS,
   USDC_MINT,
   USDT_MINT,
-  MIN_GAS_LAMPORTS,
 } from "../constants";
 import IDL from "../idl/scheduled_transfer.json";
 import type { ScheduledTransfer } from "../idl/scheduled_transfer";
@@ -36,10 +33,8 @@ interface Props {
 type PanelKey =
   | "topup-usdc"
   | "topup-usdt"
-  | "topup-sol"
   | "withdraw-usdc"
-  | "withdraw-usdt"
-  | "withdraw-sol";
+  | "withdraw-usdt";
 
 /**
  * Convert a decimal string to raw token units without floating-point
@@ -73,10 +68,8 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
 
   const [topupUsdc, setTopupUsdc] = useState("");
   const [topupUsdt, setTopupUsdt] = useState("");
-  const [topupSol, setTopupSol] = useState("");
   const [withdrawUsdc, setWithdrawUsdc] = useState("");
   const [withdrawUsdt, setWithdrawUsdt] = useState("");
-  const [withdrawSol, setWithdrawSol] = useState("");
   const [busy, setBusy] = useState(false);
   const [txSig, setTxSig] = useState<string | null>(null);
   const [activePanel, setActivePanel] = useState<PanelKey | null>(null);
@@ -88,16 +81,11 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
   const [withdrawUsdtError, setWithdrawUsdtError] = useState<string | null>(
     null,
   );
-  const [withdrawSolError, setWithdrawSolError] = useState<string | null>(
-    null,
-  );
-
   function togglePanel(key: PanelKey) {
     setActivePanel((prev) => (prev === key ? null : key));
     // Clear errors when toggling panels
     setWithdrawUsdcError(null);
     setWithdrawUsdtError(null);
-    setWithdrawSolError(null);
   }
 
   function makeAnchorWallet() {
@@ -231,94 +219,6 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
       await connection.confirmTransaction(sig, "confirmed");
       setTxSig(sig);
       clearInput();
-      onRefresh();
-    } catch (e: any) {
-      alert(e?.message ?? "Withdraw failed");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleTopupSol() {
-    if (!publicKey || !schedule) return;
-    const raw = parseFloat(topupSol);
-    if (isNaN(raw) || raw <= 0) {
-      alert("Enter a valid positive amount.");
-      return;
-    }
-
-    setBusy(true);
-    setTxSig(null);
-    try {
-      const schedulePda = schedule.publicKey;
-      const lamports = Math.round(raw * LAMPORTS_PER_SOL);
-      const tx = new Transaction().add(
-        SystemProgram.transfer({
-          fromPubkey: publicKey,
-          toPubkey: schedulePda,
-          lamports,
-        }),
-      );
-      const sig = await sendTransaction(tx, connection);
-      await connection.confirmTransaction(sig, "confirmed");
-      setTxSig(sig);
-      setTopupSol("");
-      onRefresh();
-    } catch (e: any) {
-      alert(e?.message ?? "Transfer failed");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleWithdrawSol() {
-    if (!publicKey || !schedule) return;
-    const raw = parseFloat(withdrawSol);
-    if (isNaN(raw) || raw <= 0) {
-      setWithdrawSolError("Enter a valid positive amount.");
-      return;
-    }
-
-    const lamports = Math.round(raw * LAMPORTS_PER_SOL);
-    const solBalance = status?.solBalance ?? 0;
-
-    // ── Balance guard ──────────────────────────────────────────────
-    // The on-chain program always preserves the rent-exempt minimum, so
-    // the most the user can withdraw is (balance − MIN_GAS_LAMPORTS).
-    // We use MIN_GAS_LAMPORTS as a safe proxy for the rent-exempt reserve.
-    const withdrawable = Math.max(
-      0,
-      solBalance - Number(MIN_GAS_LAMPORTS),
-    );
-    if (lamports > withdrawable) {
-      setWithdrawSolError(
-        `Amount exceeds withdrawable balance. Max: ${formatSol(withdrawable)} SOL (rent-exempt minimum is always reserved).`,
-      );
-      return;
-    }
-    setWithdrawSolError(null);
-
-    setBusy(true);
-    setTxSig(null);
-    try {
-      const provider = new AnchorProvider(connection, makeAnchorWallet(), {
-        commitment: "confirmed",
-      });
-      const program = new Program<ScheduledTransfer>(
-        IDL as unknown as ScheduledTransfer,
-        provider,
-      );
-
-      const sig = await program.methods
-        .withdrawSol(new BN(lamports))
-        .accountsPartial({
-          paymentSchedule: schedule.publicKey,
-        })
-        .rpc();
-
-      await connection.confirmTransaction(sig, "confirmed");
-      setTxSig(sig);
-      setWithdrawSol("");
       onRefresh();
     } catch (e: any) {
       alert(e?.message ?? "Withdraw failed");
@@ -488,7 +388,7 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
         Fund Status
       </h2>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="space-y-4">
         {scheduleTokenType === "USDC"
           ? tokenPanel(
               "USDC",
@@ -518,107 +418,6 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
               withdrawUsdtError,
               setWithdrawUsdtError,
             )}
-
-        {/* SOL panel */}
-        <div className="rounded-lg bg-slate-800 p-4 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-slate-400 text-sm">SOL Balance</span>
-            {status && (
-              <StatusBadge
-                ok={status.isGasSufficient}
-                label={status.isGasSufficient ? "OK" : "Low"}
-              />
-            )}
-          </div>
-          <p className="text-2xl font-bold text-white">
-            {status ? `${formatSol(status.solBalance)} SOL` : "—"}
-          </p>
-          <p className="text-xs text-slate-500">
-            Needed to cover transaction fees
-          </p>
-          <div className="flex gap-2 mt-2">
-            <button
-              onClick={() => togglePanel("topup-sol")}
-              className="flex-1 text-xs py-1.5 px-3 rounded-md bg-brand-600 hover:bg-brand-700 text-white transition-colors"
-            >
-              Top Up
-            </button>
-            <button
-              onClick={() => togglePanel("withdraw-sol")}
-              className="flex-1 text-xs py-1.5 px-3 rounded-md bg-slate-700 hover:bg-slate-600 text-white transition-colors"
-            >
-              Withdraw
-            </button>
-          </div>
-
-          {activePanel === "topup-sol" && (
-            <div className="mt-3 space-y-2">
-              <input
-                type="number"
-                min="0"
-                step="any"
-                value={topupSol}
-                onChange={(e) => setTopupSol(e.target.value)}
-                placeholder="Amount (SOL)"
-                className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-1.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500"
-              />
-              <button
-                onClick={handleTopupSol}
-                disabled={busy}
-                className="w-full py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-sm text-white transition-colors"
-              >
-                {busy ? "Sending…" : "Send"}
-              </button>
-            </div>
-          )}
-
-          {activePanel === "withdraw-sol" && (
-            <div className="mt-3 space-y-2">
-              <p className="text-xs text-slate-500">
-                Rent-exempt minimum is always preserved.
-              </p>
-              {/* Withdrawable balance hint */}
-              {status && (
-                <p className="text-xs text-slate-500">
-                  Available:{" "}
-                  <span className="text-slate-300">
-                    {formatSol(
-                      Math.max(
-                        0,
-                        status.solBalance - Number(MIN_GAS_LAMPORTS),
-                      ),
-                    )}{" "}
-                    SOL
-                  </span>
-                </p>
-              )}
-              <input
-                type="number"
-                min="0"
-                step="any"
-                value={withdrawSol}
-                onChange={(e) => {
-                  setWithdrawSol(e.target.value);
-                  setWithdrawSolError(null);
-                }}
-                placeholder="Amount (SOL)"
-                className={`w-full bg-slate-700 border rounded-md px-3 py-1.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 ${
-                  withdrawSolError ? "border-red-500" : "border-slate-600"
-                }`}
-              />
-              {withdrawSolError && (
-                <p className="text-xs text-red-400">{withdrawSolError}</p>
-              )}
-              <button
-                onClick={handleWithdrawSol}
-                disabled={busy}
-                className="w-full py-1.5 rounded-md bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-sm text-white transition-colors"
-              >
-                {busy ? "Withdrawing…" : "Withdraw"}
-              </button>
-            </div>
-          )}
-        </div>
       </div>
 
       {txSig && (
