@@ -3,8 +3,8 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { Program, AnchorProvider } from "@coral-xyz/anchor";
 import { PaymentSchedule } from "../types";
 import { formatTokenAmount } from "../utils/format";
-import IDL from "../scheduled_transfer.json";
-import type { ScheduledTransfer } from "../scheduled_transfer";
+import IDL from "../idl/scheduled_transfer.json";
+import type { ScheduledTransfer } from "../idl/scheduled_transfer";
 
 interface Props {
   schedule: PaymentSchedule | null;

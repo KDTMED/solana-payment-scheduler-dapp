@@ -24,8 +24,8 @@ import {
   USDT_MINT,
   MIN_GAS_LAMPORTS,
 } from "../constants";
-import IDL from "../scheduled_transfer.json";
-import type { ScheduledTransfer } from "../scheduled_transfer";
+import IDL from "../idl/scheduled_transfer.json";
+import type { ScheduledTransfer } from "../idl/scheduled_transfer";
 
 interface Props {
   status: FundStatusType | null;

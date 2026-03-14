@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey, AccountInfo } from "@solana/web3.js";
 import { BorshAccountsCoder } from "@coral-xyz/anchor";
-import IDL from "../scheduled_transfer.json";
+import IDL from "../idl/scheduled_transfer.json";
 import { PaymentSchedule, PaymentRecord } from "../types";
 import { findScheduleCounterPda, findPaymentSchedulePda } from "../utils/pda";
 
