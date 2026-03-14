@@ -133,7 +133,7 @@ export function ScheduleDetail() {
           onClick={handleRefresh}
           className="text-xs text-slate-500 hover:text-white transition-colors flex items-center gap-1.5"
         >
-          <span>&orarr;</span> Refresh
+          <span>↻</span> Refresh
         </button>
       </div>
 
