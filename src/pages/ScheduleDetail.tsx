@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { AccountInfo } from "@solana/web3.js";
 import { BorshAccountsCoder } from "@coral-xyz/anchor";
@@ -39,6 +39,7 @@ function decodeSchedule(
 
 export function ScheduleDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { connection } = useConnection();
   const { publicKey } = useWallet();
 
@@ -137,7 +138,7 @@ export function ScheduleDetail() {
         </button>
       </div>
 
-      <ScheduleCard schedule={schedule} onClose={handleRefresh} />
+      <ScheduleCard schedule={schedule} onClose={() => navigate("/")} />
       <FundStatus status={status} schedule={schedule} onRefresh={handleRefresh} />
       <PaymentsTable schedule={schedule} records={[]} tokenType={schedule.tokenType} />
     </div>
