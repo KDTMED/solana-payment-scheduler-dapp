@@ -155,7 +155,7 @@ describe("ScheduleCard", () => {
     fireEvent.click(screen.getByText("Confirm"));
 
     await waitFor(() => {
-      expect(alertSpy).toHaveBeenCalledWith("Close failed");
+      expect(alertSpy).toHaveBeenCalledWith("Failed to close schedule. Please try again.");
     });
     alertSpy.mockRestore();
   });

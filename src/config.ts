@@ -15,10 +15,21 @@ function normalise(value: string): Cluster {
 export const CLUSTER: Cluster = normalise(RAW);
 
 export function getEndpoint(): string {
-  if (CLUSTER === "localnet") return "http://127.0.0.1:8899";
+  if (CLUSTER === "localnet") {
+    if (import.meta.env.PROD) {
+      throw new Error("Localnet cannot be used in production builds");
+    }
+    return "http://127.0.0.1:8899";
+  }
   // Allow a full custom RPC URL override (useful for mainnet paid RPCs)
   const custom = import.meta.env.VITE_SOLANA_RPC_URL as string | undefined;
-  if (custom) return custom;
+  if (custom) {
+    const url = new URL(custom);
+    if (CLUSTER === "mainnet-beta" && url.protocol !== "https:") {
+      throw new Error("Mainnet RPC URL must use HTTPS");
+    }
+    return custom;
+  }
   return clusterApiUrl(CLUSTER);
 }
 

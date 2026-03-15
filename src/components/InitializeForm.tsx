@@ -205,7 +205,8 @@ export function InitializeForm({ onSuccess }: Props) {
 
       onSuccess();
     } catch (err: any) {
-      alert(err?.message ?? "Failed to initialize");
+      console.error("Failed to initialize schedule:", err);
+      alert("Failed to create schedule. Please try again.");
     } finally {
       setBusy(false);
     }

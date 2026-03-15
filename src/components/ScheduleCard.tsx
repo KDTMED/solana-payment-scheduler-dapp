@@ -53,7 +53,8 @@ export function ScheduleCard({ schedule, onClose }: Props) {
       setConfirming(false);
       onClose();
     } catch (err: any) {
-      alert(err?.message ?? "Failed to close schedule");
+      console.error("Failed to close schedule:", err);
+      alert("Failed to close schedule. Please try again.");
     } finally {
       setBusy(false);
     }

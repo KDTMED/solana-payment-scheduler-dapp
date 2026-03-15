@@ -127,7 +127,7 @@ describe("ScheduleDetail", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("RPC down")).toBeInTheDocument();
+      expect(screen.getByText("Failed to load schedule. Please try again.")).toBeInTheDocument();
     });
   });
 

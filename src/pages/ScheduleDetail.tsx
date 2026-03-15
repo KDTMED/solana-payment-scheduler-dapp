@@ -60,7 +60,19 @@ export function ScheduleDetail() {
     setError(null);
 
     try {
-      const scheduleId = BigInt(id);
+      let scheduleId: bigint;
+      try {
+        scheduleId = BigInt(id);
+      } catch {
+        setError("Invalid schedule ID.");
+        setLoading(false);
+        return;
+      }
+      if (scheduleId < 0n || scheduleId >= 2n ** 64n) {
+        setError("Schedule ID out of range.");
+        setLoading(false);
+        return;
+      }
       const [pda] = findPaymentSchedulePda(publicKey, scheduleId);
       const info = await connection.getAccountInfo(pda);
       if (!info) {
@@ -69,7 +81,8 @@ export function ScheduleDetail() {
         setSchedule(decodeSchedule(pda, info));
       }
     } catch (e: any) {
-      setError(e?.message ?? "Unknown error");
+      console.error("Failed to load schedule:", e);
+      setError("Failed to load schedule. Please try again.");
     } finally {
       setLoading(false);
     }

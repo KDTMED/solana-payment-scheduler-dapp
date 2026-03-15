@@ -147,6 +147,12 @@ And update the mint addresses in `src/constants.ts` accordingly.
 
 ---
 
+## Security
+
+See [SECURITY.md](SECURITY.md) for the security policy, threat model, and instructions for reporting vulnerabilities.
+
+---
+
 ## License
 
 MIT

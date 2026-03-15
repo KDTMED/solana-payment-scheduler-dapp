@@ -315,7 +315,7 @@ describe("FundStatus — async handlers", () => {
     fireEvent.click(screen.getByText("Create USDC Account"));
 
     await waitFor(() => {
-      expect(alertSpy).toHaveBeenCalledWith("tx failed");
+      expect(alertSpy).toHaveBeenCalledWith("Failed to create token account. Please try again.");
     });
     alertSpy.mockRestore();
   });
@@ -358,7 +358,7 @@ describe("FundStatus — async handlers", () => {
     fireEvent.click(screen.getByText("Send"));
 
     await waitFor(() => {
-      expect(alertSpy).toHaveBeenCalledWith("Transfer failed");
+      expect(alertSpy).toHaveBeenCalledWith("Transfer failed. Please try again.");
     });
     alertSpy.mockRestore();
   });

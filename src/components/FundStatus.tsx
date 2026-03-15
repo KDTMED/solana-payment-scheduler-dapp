@@ -126,7 +126,8 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
       setTxSig(sig);
       onRefresh();
     } catch (e: any) {
-      alert(e?.message ?? "Failed to create token account");
+      console.error("Failed to create token account:", e);
+      alert("Failed to create token account. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -165,7 +166,8 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
       clearInput();
       onRefresh();
     } catch (e: any) {
-      alert(e?.message ?? "Transfer failed");
+      console.error("Transfer failed:", e);
+      alert("Transfer failed. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -221,7 +223,8 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
       clearInput();
       onRefresh();
     } catch (e: any) {
-      alert(e?.message ?? "Withdraw failed");
+      console.error("Withdraw failed:", e);
+      alert("Withdraw failed. Please try again.");
     } finally {
       setBusy(false);
     }
