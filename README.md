@@ -69,7 +69,7 @@ bun run build
 ### Test
 
 ```bash
-bun test                  # unit tests (run once)
+bun run test              # unit tests (run once)
 bun run test:watch        # unit tests (watch mode)
 bun run test:coverage     # unit tests with coverage report
 ```
