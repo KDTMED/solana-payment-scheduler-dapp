@@ -69,10 +69,30 @@ bun run build
 ### Test
 
 ```bash
-bun test                  # run once
-bun run test:watch        # watch mode
-bun run test:coverage     # with coverage report
+bun test                  # unit tests (run once)
+bun run test:watch        # unit tests (watch mode)
+bun run test:coverage     # unit tests with coverage report
 ```
+
+### Integration Tests
+
+Integration tests run against a local Solana validator with the program cloned
+from devnet. They test the full on-chain lifecycle: counter initialization,
+schedule creation, payment triggering, token withdrawal, and schedule closing.
+
+**Prerequisites:** [Solana CLI](https://docs.solana.com/cli/install-solana-cli-tools) ≥ 2.3.1
+
+```bash
+# Terminal 1 — start a local validator with the program and token mints
+bun run validator
+
+# Terminal 2 — run integration tests
+bun run test:integration
+```
+
+The `validator` script generates USDC/USDT mint fixtures in
+`integration/fixtures/` (gitignored) and starts `solana-test-validator` with
+the program cloned from devnet and the test mints pre-loaded.
 
 ---
 
@@ -108,42 +128,56 @@ src/
     InitializeForm.tsx   # Schedule creation form
     PaymentsTable.tsx    # Upcoming and historical payments
     ScheduleCard.tsx     # Schedule summary header card
+    ScheduleList.tsx     # List of user's schedules
     StatusBadge.tsx      # OK / Low indicator pill
   hooks/
     useFundStatus.ts     # Polls token + SOL balances every 15s
-    useSchedule.ts       # Fetches and decodes schedule + record PDAs
+    useSchedule.ts       # Fetches and decodes schedule PDAs
+  pages/
+    ScheduleDetail.tsx   # Single schedule detail view
   utils/
     format.ts            # Token amount, SOL, timestamp, duration helpers
-    pda.ts               # PDA derivation for schedule and record accounts
+    pda.ts               # PDA derivation for schedule and counter accounts
+  idl/
+    scheduled_transfer.json  # Anchor IDL
+    scheduled_transfer.ts    # Typed IDL for TypeScript
   constants.ts           # Program ID, token mints, decimals, limits
-  scheduled_transfer.ts  # Anchor IDL type definitions for the on-chain program
+  config.ts              # Cluster and endpoint configuration
   types.ts               # Shared TypeScript interfaces
+integration/
+  setup-validator.ts     # Generates mint fixtures and starts solana-test-validator
+  helpers.ts             # Test utilities (airdrop, ATA creation, PDA derivation)
+  scheduled-transfer.test.ts  # On-chain integration tests
+  vitest.config.ts       # Vitest config for integration tests
 ```
 
 ---
 
 ## On-Chain Accounts
 
-| Account          | Seeds                                        |
-|------------------|----------------------------------------------|
-| `PaymentSchedule`| `["payment_schedule", authority]`            |
-| `PaymentRecord`  | `["payment_record", schedule, index (u8)]`   |
+| Account           | Seeds                                                       |
+|-------------------|-------------------------------------------------------------|
+| `ScheduleCounter` | `["schedule_counter", authority]`                           |
+| `PaymentSchedule` | `["payment_schedule", authority, schedule_id (u64 LE)]`     |
 
-Up to **50** payment entries per schedule. Payment records are probed for
-indices 0–99.
+A `ScheduleCounter` PDA tracks the next available `schedule_id` per authority,
+allowing multiple independent schedules. Up to **50** payment entries per
+schedule.
 
 ---
 
 ## Network
 
-The app runs on **Devnet** by default. To switch networks, update the
-`endpoint` in `src/App.tsx`:
+The app runs on **Devnet** by default. Switch clusters via environment variable:
 
-```ts
-const endpoint = useMemo(() => clusterApiUrl("mainnet-beta"), []);
+```bash
+VITE_SOLANA_CLUSTER=localnet bun dev       # local validator
+VITE_SOLANA_CLUSTER=devnet bun dev         # devnet (default)
+VITE_SOLANA_CLUSTER=mainnet-beta bun dev   # mainnet
 ```
 
-And update the mint addresses in `src/constants.ts` accordingly.
+Token mint addresses are configured per cluster in `src/constants.ts`.
+A custom RPC URL can be set via `VITE_SOLANA_RPC_URL`.
 
 ---
 
