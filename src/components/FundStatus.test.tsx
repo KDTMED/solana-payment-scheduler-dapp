@@ -149,27 +149,22 @@ describe("FundStatus — USDC schedule", () => {
     expect(screen.getByPlaceholderText("Amount (USDC)")).toBeInTheDocument();
   });
 
-  it("shows warning when usdcTokenAccount is null in top-up panel", () => {
-    render(<FundStatus status={makeStatus({ usdcTokenAccount: null })} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
-    fireEvent.click(screen.getByText("Top Up"));
-    expect(screen.getByText(/No USDC token account found/)).toBeInTheDocument();
-  });
-
-  it("shows warning when usdcTokenAccount is null in withdraw panel", () => {
-    render(<FundStatus status={makeStatus({ usdcTokenAccount: null })} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
-    fireEvent.click(screen.getByText("Withdraw"));
-    expect(screen.getByText(/No USDC token account found/)).toBeInTheDocument();
-  });
-
-  it("shows Create Account button when usdcTokenAccount is null", () => {
+  it("shows Create Account in right column when usdcTokenAccount is null", () => {
     render(<FundStatus status={makeStatus({ usdcTokenAccount: null })} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
     expect(screen.getByText("Create USDC Account")).toBeInTheDocument();
+    expect(screen.getByText(/No USDC token account exists/)).toBeInTheDocument();
   });
 
-  it("disables USDC Send button when usdcTokenAccount is null", () => {
+  it("hides Top Up and Withdraw buttons when usdcTokenAccount is null", () => {
     render(<FundStatus status={makeStatus({ usdcTokenAccount: null })} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
-    fireEvent.click(screen.getByText("Top Up"));
-    expect(screen.getByText("Send").closest("button")).toBeDisabled();
+    expect(screen.queryByText("Top Up")).not.toBeInTheDocument();
+    expect(screen.queryByText("Withdraw")).not.toBeInTheDocument();
+  });
+
+  it("still shows balance on the left when usdcTokenAccount is null", () => {
+    render(<FundStatus status={makeStatus({ usdcTokenAccount: null })} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
+    expect(screen.getByText("USDC Balance")).toBeInTheDocument();
+    expect(screen.getByText("10")).toBeInTheDocument();
   });
 });
 
@@ -206,36 +201,22 @@ describe("FundStatus — USDT schedule", () => {
     expect(screen.getByPlaceholderText("Amount (USDT)")).toBeInTheDocument();
   });
 
-  it("shows warning when usdtTokenAccount is null in top-up panel", () => {
-    render(<FundStatus status={makeStatus({ usdtTokenAccount: null })} schedule={makeSchedule("USDT")} onRefresh={onRefresh} />);
-    fireEvent.click(screen.getByText("Top Up"));
-    expect(screen.getByText(/No USDT token account found/)).toBeInTheDocument();
-  });
-
-  it("shows warning when usdtTokenAccount is null in withdraw panel", () => {
-    render(<FundStatus status={makeStatus({ usdtTokenAccount: null })} schedule={makeSchedule("USDT")} onRefresh={onRefresh} />);
-    fireEvent.click(screen.getByText("Withdraw"));
-    expect(screen.getByText(/No USDT token account found/)).toBeInTheDocument();
-  });
-
-  it("disables USDT Withdraw button when usdtTokenAccount is null", () => {
-    render(<FundStatus status={makeStatus({ usdtTokenAccount: null })} schedule={makeSchedule("USDT")} onRefresh={onRefresh} />);
-    fireEvent.click(screen.getByText("Withdraw"));
-    const disabledBtn = screen
-      .getAllByRole("button", { name: "Withdraw" })
-      .find((b) => (b as HTMLButtonElement).disabled);
-    expect(disabledBtn).toBeDefined();
-  });
-
-  it("shows Create USDT Account button when usdtTokenAccount is null", () => {
+  it("shows Create Account in right column when usdtTokenAccount is null", () => {
     render(<FundStatus status={makeStatus({ usdtTokenAccount: null })} schedule={makeSchedule("USDT")} onRefresh={onRefresh} />);
     expect(screen.getByText("Create USDT Account")).toBeInTheDocument();
+    expect(screen.getByText(/No USDT token account exists/)).toBeInTheDocument();
   });
 
-  it("disables USDT Send button when usdtTokenAccount is null", () => {
+  it("hides Top Up and Withdraw buttons when usdtTokenAccount is null", () => {
     render(<FundStatus status={makeStatus({ usdtTokenAccount: null })} schedule={makeSchedule("USDT")} onRefresh={onRefresh} />);
-    fireEvent.click(screen.getByText("Top Up"));
-    expect(screen.getByText("Send").closest("button")).toBeDisabled();
+    expect(screen.queryByText("Top Up")).not.toBeInTheDocument();
+    expect(screen.queryByText("Withdraw")).not.toBeInTheDocument();
+  });
+
+  it("still shows balance on the left when usdtTokenAccount is null", () => {
+    render(<FundStatus status={makeStatus({ usdtTokenAccount: null })} schedule={makeSchedule("USDT")} onRefresh={onRefresh} />);
+    expect(screen.getByText("USDT Balance")).toBeInTheDocument();
+    expect(screen.getByText("20")).toBeInTheDocument();
   });
 });
 

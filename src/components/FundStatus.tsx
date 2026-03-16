@@ -247,55 +247,64 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
     setWithdrawError: (msg: string | null) => void,
   ) {
     const isScheduleToken = scheduleTokenType === label;
+    const needsAccount = status != null && !tokenAccount;
     return (
       <div className="rounded-lg bg-slate-800 p-4 space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="text-slate-400 text-sm">{label} Balance</span>
-          {isScheduleToken && (
-            <StatusBadge ok={status?.isSufficient ?? true} />
-          )}
-        </div>
-        <p className="text-2xl font-bold text-white">
-          {status ? formatTokenAmount(balance) : "—"}
-        </p>
-        {isScheduleToken && status?.requiredForNext != null && (
-          <p className="text-xs text-slate-500">
-            Next payment requires{" "}
-            <span className="text-slate-300">
-              {formatTokenAmount(status.requiredForNext)}
-            </span>
-          </p>
-        )}
-
-        {status && !tokenAccount && (
-          <div className="rounded-md bg-amber-500/10 border border-amber-500/20 p-3 space-y-2">
-            <p className="text-xs text-amber-400">
-              No {label} token account exists for this schedule PDA yet.
-              Create one before you can top up or withdraw.
+        <div className="grid grid-cols-2 gap-4 items-start">
+          {/* Left column: Balance */}
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400 text-sm">{label} Balance</span>
+              {isScheduleToken && (
+                <StatusBadge ok={status?.isSufficient ?? true} />
+              )}
+            </div>
+            <p className="text-2xl font-bold text-white">
+              {status ? formatTokenAmount(balance) : "—"}
             </p>
-            <button
-              onClick={() => handleCreateAta(mint)}
-              disabled={busy}
-              className="w-full py-1.5 rounded-md bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-sm text-white transition-colors"
-            >
-              {busy ? "Creating…" : `Create ${label} Account`}
-            </button>
+            {isScheduleToken && status?.requiredForNext != null && (
+              <p className="text-xs text-slate-500">
+                Next payment requires{" "}
+                <span className="text-slate-300">
+                  {formatTokenAmount(status.requiredForNext)}
+                </span>
+              </p>
+            )}
           </div>
-        )}
 
-        <div className="flex gap-2 mt-2">
-          <button
-            onClick={() => togglePanel(topupKey)}
-            className="flex-1 text-xs py-1.5 px-3 rounded-md bg-brand-600 hover:bg-brand-700 text-white transition-colors"
-          >
-            Top Up
-          </button>
-          <button
-            onClick={() => togglePanel(withdrawKey)}
-            className="flex-1 text-xs py-1.5 px-3 rounded-md bg-slate-700 hover:bg-slate-600 text-white transition-colors"
-          >
-            Withdraw
-          </button>
+          {/* Right column: Action buttons or Create Account */}
+          <div className="flex flex-col gap-2 items-end">
+            {needsAccount ? (
+              <div className="space-y-2">
+                <p className="text-xs text-amber-400">
+                  No {label} token account exists for this schedule PDA yet.
+                  Create one before you can top up or withdraw.
+                </p>
+                <button
+                  onClick={() => handleCreateAta(mint)}
+                  disabled={busy}
+                  className="w-full py-1.5 rounded-md bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-sm text-white transition-colors"
+                >
+                  {busy ? "Creating…" : `Create ${label} Account`}
+                </button>
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={() => togglePanel(topupKey)}
+                  className="w-full text-xs py-1.5 px-3 rounded-md bg-brand-600 hover:bg-brand-700 text-white transition-colors"
+                >
+                  Top Up
+                </button>
+                <button
+                  onClick={() => togglePanel(withdrawKey)}
+                  className="w-full text-xs py-1.5 px-3 rounded-md bg-slate-700 hover:bg-slate-600 text-white transition-colors"
+                >
+                  Withdraw
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         {activePanel === topupKey && (
@@ -320,11 +329,6 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
             >
               {busy ? "Sending…" : "Send"}
             </button>
-            {!tokenAccount && (
-              <p className="text-xs text-amber-400">
-                No {label} token account found. Create one above first.
-              </p>
-            )}
           </div>
         )}
 
@@ -374,11 +378,6 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
             >
               {busy ? "Withdrawing…" : "Withdraw"}
             </button>
-            {!tokenAccount && (
-              <p className="text-xs text-amber-400">
-                No {label} token account found. Create one above first.
-              </p>
-            )}
           </div>
         )}
       </div>
