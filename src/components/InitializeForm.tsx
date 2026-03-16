@@ -7,6 +7,8 @@ import type { ScheduledTransfer } from "../idl/scheduled_transfer";
 import {
   TOKEN_DECIMALS,
   MAX_SCHEDULE_ENTRIES,
+  USDC_MINT,
+  USDT_MINT,
 } from "../constants";
 import { findScheduleCounterPda, findPaymentSchedulePda } from "../utils/pda";
 
@@ -190,6 +192,8 @@ export function InitializeForm({ onSuccess }: Props) {
 
       const [paymentSchedulePda] = findPaymentSchedulePda(wallet.publicKey, nextId);
 
+      const mint = tokenType === "USDC" ? USDC_MINT : USDT_MINT;
+
       await program.methods
         .initialize(
           schedule,
@@ -200,6 +204,7 @@ export function InitializeForm({ onSuccess }: Props) {
           authority: wallet.publicKey,
           scheduleCounter: counterPda,
           paymentSchedule: paymentSchedulePda,
+          mint,
         })
         .rpc();
 

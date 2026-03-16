@@ -27,7 +27,6 @@ export function useFundStatus(schedule: PaymentSchedule | null) {
 
       // Derive and query USDC ATA of the schedule PDA
       let usdcBalance = 0n;
-      let usdcTokenAccount = null;
       try {
         const usdcAta = await getAssociatedTokenAddress(
           USDC_MINT,
@@ -36,14 +35,12 @@ export function useFundStatus(schedule: PaymentSchedule | null) {
         );
         const acct = await getAccount(connection, usdcAta);
         usdcBalance = acct.amount;
-        usdcTokenAccount = usdcAta;
       } catch {
-        // Account doesn't exist yet
+        // Account doesn't exist yet or fetch failed
       }
 
       // Derive and query USDT ATA of the schedule PDA
       let usdtBalance = 0n;
-      let usdtTokenAccount = null;
       try {
         const usdtAta = await getAssociatedTokenAddress(
           USDT_MINT,
@@ -52,9 +49,8 @@ export function useFundStatus(schedule: PaymentSchedule | null) {
         );
         const acct = await getAccount(connection, usdtAta);
         usdtBalance = acct.amount;
-        usdtTokenAccount = usdtAta;
       } catch {
-        // Account doesn't exist yet
+        // Account doesn't exist yet or fetch failed
       }
 
       const nextPayment = schedule?.schedule[0] ?? null;
@@ -67,8 +63,6 @@ export function useFundStatus(schedule: PaymentSchedule | null) {
         isGasSufficient: BigInt(solBalance) >= MIN_GAS_LAMPORTS,
         usdcBalance,
         usdtBalance,
-        usdcTokenAccount,
-        usdtTokenAccount,
         requiredForNext,
         isSufficient:
           requiredForNext !== null

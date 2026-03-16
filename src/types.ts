@@ -33,8 +33,6 @@ export interface FundStatus {
   isGasSufficient: boolean;
   usdcBalance: bigint;
   usdtBalance: bigint;
-  usdcTokenAccount: PublicKey | null;
-  usdtTokenAccount: PublicKey | null;
   // Set when a schedule exists; null otherwise
   requiredForNext: bigint | null;
   isSufficient: boolean;

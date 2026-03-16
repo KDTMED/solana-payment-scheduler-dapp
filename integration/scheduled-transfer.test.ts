@@ -55,7 +55,7 @@ describe("Scheduled Transfer – full lifecycle", () => {
 
       await program.methods
         .initializeCounter()
-        .accounts({
+        .accountsPartial({
           authority: authority.publicKey,
         })
         .signers([authority])
@@ -70,7 +70,7 @@ describe("Scheduled Transfer – full lifecycle", () => {
       await expect(
         program.methods
           .initializeCounter()
-          .accounts({
+          .accountsPartial({
             authority: authority.publicKey,
           })
           .signers([authority])
@@ -89,8 +89,9 @@ describe("Scheduled Transfer – full lifecycle", () => {
 
       await program.methods
         .initialize(payments, recipient.publicKey, { usdc: {} })
-        .accounts({
+        .accountsPartial({
           authority: authority.publicKey,
+          mint: USDC_MINT,
         })
         .signers([authority])
         .rpc();
@@ -121,8 +122,9 @@ describe("Scheduled Transfer – full lifecycle", () => {
             recipient.publicKey,
             { usdc: {} },
           )
-          .accounts({
+          .accountsPartial({
             authority: authority.publicKey,
+            mint: USDC_MINT,
           })
           .signers([authority])
           .rpc(),
@@ -138,8 +140,9 @@ describe("Scheduled Transfer – full lifecycle", () => {
       await expect(
         program.methods
           .initialize(tooMany, recipient.publicKey, { usdc: {} })
-          .accounts({
+          .accountsPartial({
             authority: authority.publicKey,
+            mint: USDC_MINT,
           })
           .signers([authority])
           .rpc(),
@@ -155,8 +158,9 @@ describe("Scheduled Transfer – full lifecycle", () => {
     beforeAll(async () => {
       [schedulePda] = findPaymentSchedulePda(authority.publicKey, 0n);
 
-      // Create the PDA-owned source token account using the real USDC mint
-      sourceAta = await createAndFundAta(
+      // The source ATA was auto-created by initialize; fund it with tokens
+      sourceAta = await getAssociatedTokenAddress(USDC_MINT, schedulePda, true);
+      await createAndFundAta(
         connection,
         authority,
         USDC_MINT,
@@ -184,7 +188,7 @@ describe("Scheduled Transfer – full lifecycle", () => {
 
       await program.methods
         .triggerPayment(0)
-        .accounts({
+        .accountsPartial({
           paymentSchedule: schedulePda,
           sourceTokenAccount: sourceAta,
           destinationTokenAccount: recipientAta,
@@ -204,7 +208,7 @@ describe("Scheduled Transfer – full lifecycle", () => {
       await expect(
         program.methods
           .triggerPayment(1)
-          .accounts({
+          .accountsPartial({
             paymentSchedule: schedulePda,
             sourceTokenAccount: sourceAta,
             destinationTokenAccount: recipientAta,
@@ -236,7 +240,7 @@ describe("Scheduled Transfer – full lifecycle", () => {
 
       await program.methods
         .withdrawTokens(new BN(1_000_000))
-        .accounts({
+        .accountsPartial({
           paymentSchedule: schedulePda,
           sourceTokenAccount: sourceAta,
           destinationTokenAccount: authorityAta,
@@ -263,23 +267,19 @@ describe("Scheduled Transfer – full lifecycle", () => {
           recipient.publicKey,
           { usdc: {} },
         )
-        .accounts({ authority: authority.publicKey })
+        .accountsPartial({
+          authority: authority.publicKey,
+          mint: USDC_MINT,
+        })
         .signers([authority])
         .rpc();
 
       const [freshPda] = findPaymentSchedulePda(authority.publicKey, 1n);
+      // The source ATA was auto-created by initialize
       const sourceAta = await getAssociatedTokenAddress(
         USDC_MINT,
         freshPda,
         true,
-      );
-      await createAndFundAta(
-        connection,
-        authority,
-        USDC_MINT,
-        mintAuthority,
-        freshPda,
-        0,
       );
       const destAta = await getAssociatedTokenAddress(
         USDC_MINT,
@@ -325,7 +325,7 @@ describe("Scheduled Transfer – multiple schedules", () => {
 
     await program.methods
       .initializeCounter()
-      .accounts({ authority: authority.publicKey })
+      .accountsPartial({ authority: authority.publicKey })
       .signers([authority])
       .rpc();
   });
@@ -338,13 +338,13 @@ describe("Scheduled Transfer – multiple schedules", () => {
 
     await program.methods
       .initialize(payments, recipient.publicKey, { usdt: {} })
-      .accounts({ authority: authority.publicKey })
+      .accountsPartial({ authority: authority.publicKey, mint: USDT_MINT })
       .signers([authority])
       .rpc();
 
     await program.methods
       .initialize(payments, recipient.publicKey, { usdc: {} })
-      .accounts({ authority: authority.publicKey })
+      .accountsPartial({ authority: authority.publicKey, mint: USDC_MINT })
       .signers([authority])
       .rpc();
 
@@ -385,7 +385,7 @@ describe("Scheduled Transfer – check_funds and check_gas_funds", () => {
 
     await program.methods
       .initializeCounter()
-      .accounts({ authority: authority.publicKey })
+      .accountsPartial({ authority: authority.publicKey })
       .signers([authority])
       .rpc();
 
@@ -396,7 +396,10 @@ describe("Scheduled Transfer – check_funds and check_gas_funds", () => {
         recipient.publicKey,
         { usdc: {} },
       )
-      .accounts({ authority: authority.publicKey })
+      .accountsPartial({
+        authority: authority.publicKey,
+        mint: USDC_MINT,
+      })
       .signers([authority])
       .rpc();
 
@@ -404,20 +407,13 @@ describe("Scheduled Transfer – check_funds and check_gas_funds", () => {
   });
 
   it("check_funds fails when source account has insufficient tokens", async () => {
-    // Create an empty source ATA for the PDA using real USDC mint
-    const sourceAta = await createAndFundAta(
-      connection,
-      authority,
-      USDC_MINT,
-      mintAuthority,
-      schedulePda,
-      0,
-    );
+    // The source ATA was auto-created by initialize with zero balance
+    const sourceAta = await getAssociatedTokenAddress(USDC_MINT, schedulePda, true);
 
     await expect(
       program.methods
         .checkFunds()
-        .accounts({
+        .accountsPartial({
           paymentSchedule: schedulePda,
           sourceTokenAccount: sourceAta,
         })
@@ -427,6 +423,7 @@ describe("Scheduled Transfer – check_funds and check_gas_funds", () => {
   });
 
   it("check_funds succeeds when source account is funded", async () => {
+    // Fund the existing source ATA
     const sourceAta = await createAndFundAta(
       connection,
       authority,
@@ -438,7 +435,7 @@ describe("Scheduled Transfer – check_funds and check_gas_funds", () => {
 
     await program.methods
       .checkFunds()
-      .accounts({
+      .accountsPartial({
         paymentSchedule: schedulePda,
         sourceTokenAccount: sourceAta,
       })
@@ -449,7 +446,7 @@ describe("Scheduled Transfer – check_funds and check_gas_funds", () => {
   it("check_gas_funds succeeds when authority has SOL", async () => {
     await program.methods
       .checkGasFunds()
-      .accounts({ authority: authority.publicKey })
+      .accountsPartial({ authority: authority.publicKey })
       .signers([authority])
       .rpc();
   });

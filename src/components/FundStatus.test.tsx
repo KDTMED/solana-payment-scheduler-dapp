@@ -8,10 +8,8 @@ import { mockWallet, mockConnection } from "../test/walletMock";
 
 vi.mock("@solana/spl-token", () => ({
   createTransferInstruction: vi.fn(() => ({ keys: [], programId: new PublicKey("11111111111111111111111111111111") })),
-  createAssociatedTokenAccountInstruction: vi.fn(() => ({ keys: [], programId: new PublicKey("11111111111111111111111111111111") })),
   getAssociatedTokenAddress: vi.fn(() => Promise.resolve(new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe1bJ"))),
   TOKEN_PROGRAM_ID: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
-  ASSOCIATED_TOKEN_PROGRAM_ID: new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe1bJ"),
 }));
 
 const mockRpc = vi.fn().mockResolvedValue("mock-sig");
@@ -33,8 +31,6 @@ vi.mock("@coral-xyz/anchor", () => ({
 const SCHEDULE_PK = new PublicKey("11111111111111111111111111111111");
 const AUTHORITY_PK = new PublicKey("So11111111111111111111111111111111111111112");
 const RECIPIENT_PK = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
-const TOKEN_ACCT_PK = new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe1bJ");
-const TOKEN_ACCT_PK2 = new PublicKey("7o3nQzFhPdHmDoWTB4mNPxDMa4F8e25qRUBXHnLMoEJP");
 
 function makeStatus(overrides?: Partial<FundStatusType>): FundStatusType {
   return {
@@ -42,8 +38,6 @@ function makeStatus(overrides?: Partial<FundStatusType>): FundStatusType {
     isGasSufficient: true,
     usdcBalance: 10_000_000n,
     usdtBalance: 20_000_000n,
-    usdcTokenAccount: TOKEN_ACCT_PK,
-    usdtTokenAccount: TOKEN_ACCT_PK2,
     requiredForNext: 5_000_000n,
     isSufficient: true,
     ...overrides,
@@ -148,24 +142,6 @@ describe("FundStatus — USDC schedule", () => {
     fireEvent.click(screen.getByText("Withdraw"));
     expect(screen.getByPlaceholderText("Amount (USDC)")).toBeInTheDocument();
   });
-
-  it("shows Create Account in right column when usdcTokenAccount is null", () => {
-    render(<FundStatus status={makeStatus({ usdcTokenAccount: null })} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
-    expect(screen.getByText("Create USDC Account")).toBeInTheDocument();
-    expect(screen.getByText(/No USDC token account exists/)).toBeInTheDocument();
-  });
-
-  it("hides Top Up and Withdraw buttons when usdcTokenAccount is null", () => {
-    render(<FundStatus status={makeStatus({ usdcTokenAccount: null })} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
-    expect(screen.queryByText("Top Up")).not.toBeInTheDocument();
-    expect(screen.queryByText("Withdraw")).not.toBeInTheDocument();
-  });
-
-  it("still shows balance on the left when usdcTokenAccount is null", () => {
-    render(<FundStatus status={makeStatus({ usdcTokenAccount: null })} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
-    expect(screen.getByText("USDC Balance")).toBeInTheDocument();
-    expect(screen.getByText("10")).toBeInTheDocument();
-  });
 });
 
 describe("FundStatus — USDT schedule", () => {
@@ -199,24 +175,6 @@ describe("FundStatus — USDT schedule", () => {
     render(<FundStatus status={makeStatus()} schedule={makeSchedule("USDT")} onRefresh={onRefresh} />);
     fireEvent.click(screen.getByText("Withdraw"));
     expect(screen.getByPlaceholderText("Amount (USDT)")).toBeInTheDocument();
-  });
-
-  it("shows Create Account in right column when usdtTokenAccount is null", () => {
-    render(<FundStatus status={makeStatus({ usdtTokenAccount: null })} schedule={makeSchedule("USDT")} onRefresh={onRefresh} />);
-    expect(screen.getByText("Create USDT Account")).toBeInTheDocument();
-    expect(screen.getByText(/No USDT token account exists/)).toBeInTheDocument();
-  });
-
-  it("hides Top Up and Withdraw buttons when usdtTokenAccount is null", () => {
-    render(<FundStatus status={makeStatus({ usdtTokenAccount: null })} schedule={makeSchedule("USDT")} onRefresh={onRefresh} />);
-    expect(screen.queryByText("Top Up")).not.toBeInTheDocument();
-    expect(screen.queryByText("Withdraw")).not.toBeInTheDocument();
-  });
-
-  it("still shows balance on the left when usdtTokenAccount is null", () => {
-    render(<FundStatus status={makeStatus({ usdtTokenAccount: null })} schedule={makeSchedule("USDT")} onRefresh={onRefresh} />);
-    expect(screen.getByText("USDT Balance")).toBeInTheDocument();
-    expect(screen.getByText("20")).toBeInTheDocument();
   });
 });
 
@@ -273,32 +231,6 @@ describe("FundStatus — async handlers", () => {
     mockWallet.sendTransaction.mockReset();
     mockWallet.sendTransaction.mockResolvedValue("mock-tx-sig");
     (mockConnection as any).confirmTransaction = vi.fn().mockResolvedValue({});
-  });
-
-  it("handleCreateAta sends transaction when no token account exists", async () => {
-    render(<FundStatus status={makeStatus({ usdcTokenAccount: null })} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
-    const createBtn = screen.getByText("Create USDC Account");
-    fireEvent.click(createBtn);
-
-    await waitFor(() => {
-      expect(mockWallet.sendTransaction).toHaveBeenCalled();
-    });
-    await waitFor(() => {
-      expect(onRefresh).toHaveBeenCalled();
-    });
-  });
-
-  it("handleCreateAta shows alert on failure", async () => {
-    mockWallet.sendTransaction.mockRejectedValue(new Error("tx failed"));
-    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
-
-    render(<FundStatus status={makeStatus({ usdcTokenAccount: null })} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
-    fireEvent.click(screen.getByText("Create USDC Account"));
-
-    await waitFor(() => {
-      expect(alertSpy).toHaveBeenCalledWith("Failed to create token account. Please try again.");
-    });
-    alertSpy.mockRestore();
   });
 
   it("handleTopupToken sends transfer when amount is valid", async () => {

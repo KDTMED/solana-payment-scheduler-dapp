@@ -7,10 +7,8 @@ import {
 } from "@solana/web3.js";
 import {
   createTransferInstruction,
-  createAssociatedTokenAccountInstruction,
   getAssociatedTokenAddress,
   TOKEN_PROGRAM_ID,
-  ASSOCIATED_TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import { Program, AnchorProvider, BN } from "@coral-xyz/anchor";
 import { FundStatus as FundStatusType, PaymentSchedule } from "../types";
@@ -97,49 +95,12 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
     } as any;
   }
 
-  async function handleCreateAta(mint: PublicKey) {
-    if (!publicKey || !schedule) return;
-
-    setBusy(true);
-    setTxSig(null);
-    try {
-      const schedulePda = schedule.publicKey;
-      const ata = await getAssociatedTokenAddress(
-        mint,
-        schedulePda,
-        true,
-      );
-
-      const tx = new Transaction().add(
-        createAssociatedTokenAccountInstruction(
-          publicKey,
-          ata,
-          schedulePda,
-          mint,
-          TOKEN_PROGRAM_ID,
-          ASSOCIATED_TOKEN_PROGRAM_ID,
-        ),
-      );
-
-      const sig = await sendTransaction(tx, connection);
-      await connection.confirmTransaction(sig, "confirmed");
-      setTxSig(sig);
-      onRefresh();
-    } catch (e: any) {
-      console.error("Failed to create token account:", e);
-      alert("Failed to create token account. Please try again.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
   async function handleTopupToken(
     mint: PublicKey,
-    sourceTokenAccount: PublicKey | null,
     rawInput: string,
     clearInput: () => void,
   ) {
-    if (!publicKey || !sourceTokenAccount) return;
+    if (!publicKey || !schedule) return;
     const amount = parseTokenAmount(rawInput, TOKEN_DECIMALS);
     if (amount === null || amount <= 0n) {
       alert("Enter a valid positive amount.");
@@ -150,6 +111,7 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
     setTxSig(null);
     try {
       const userAta = await getAssociatedTokenAddress(mint, publicKey);
+      const sourceTokenAccount = await getAssociatedTokenAddress(mint, schedule.publicKey, true);
       const tx = new Transaction().add(
         createTransferInstruction(
           userAta,
@@ -175,13 +137,12 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
 
   async function handleWithdrawToken(
     mint: PublicKey,
-    sourceTokenAccount: PublicKey | null,
     balance: bigint,
     rawInput: string,
     clearInput: () => void,
     setError: (msg: string | null) => void,
   ) {
-    if (!publicKey || !sourceTokenAccount || !schedule) return;
+    if (!publicKey || !schedule) return;
 
     const amount = parseTokenAmount(rawInput, TOKEN_DECIMALS);
     if (amount === null || amount <= 0n) {
@@ -208,6 +169,7 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
         provider,
       );
       const userAta = await getAssociatedTokenAddress(mint, publicKey);
+      const sourceTokenAccount = await getAssociatedTokenAddress(mint, schedule.publicKey, true);
 
       const sig = await program.methods
         .withdrawTokens(new BN(amount.toString()))
@@ -235,7 +197,6 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
   function tokenPanel(
     label: "USDC" | "USDT",
     balance: bigint,
-    tokenAccount: PublicKey | null,
     topupKey: PanelKey,
     withdrawKey: PanelKey,
     topupValue: string,
@@ -247,7 +208,6 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
     setWithdrawError: (msg: string | null) => void,
   ) {
     const isScheduleToken = scheduleTokenType === label;
-    const needsAccount = status != null && !tokenAccount;
     return (
       <div className="rounded-lg bg-slate-800 p-4 space-y-2">
         <div className="grid grid-cols-2 gap-4 items-start">
@@ -272,38 +232,20 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
             )}
           </div>
 
-          {/* Right column: Action buttons or Create Account */}
+          {/* Right column: Action buttons */}
           <div className="flex flex-col gap-2 items-end">
-            {needsAccount ? (
-              <div className="space-y-2">
-                <p className="text-xs text-amber-400">
-                  No {label} token account exists for this schedule PDA yet.
-                  Create one before you can top up or withdraw.
-                </p>
-                <button
-                  onClick={() => handleCreateAta(mint)}
-                  disabled={busy}
-                  className="w-full py-1.5 rounded-md bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-sm text-white transition-colors"
-                >
-                  {busy ? "Creating…" : `Create ${label} Account`}
-                </button>
-              </div>
-            ) : (
-              <>
-                <button
-                  onClick={() => togglePanel(topupKey)}
-                  className="w-full text-xs py-1.5 px-3 rounded-md bg-brand-600 hover:bg-brand-700 text-white transition-colors"
-                >
-                  Top Up
-                </button>
-                <button
-                  onClick={() => togglePanel(withdrawKey)}
-                  className="w-full text-xs py-1.5 px-3 rounded-md bg-slate-700 hover:bg-slate-600 text-white transition-colors"
-                >
-                  Withdraw
-                </button>
-              </>
-            )}
+            <button
+              onClick={() => togglePanel(topupKey)}
+              className="w-full text-xs py-1.5 px-3 rounded-md bg-brand-600 hover:bg-brand-700 text-white transition-colors"
+            >
+              Top Up
+            </button>
+            <button
+              onClick={() => togglePanel(withdrawKey)}
+              className="w-full text-xs py-1.5 px-3 rounded-md bg-slate-700 hover:bg-slate-600 text-white transition-colors"
+            >
+              Withdraw
+            </button>
           </div>
         </div>
 
@@ -320,11 +262,11 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
             />
             <button
               onClick={() =>
-                handleTopupToken(mint, tokenAccount, topupValue, () =>
+                handleTopupToken(mint, topupValue, () =>
                   setTopupValue(""),
                 )
               }
-              disabled={busy || !tokenAccount}
+              disabled={busy}
               className="w-full py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-sm text-white transition-colors"
             >
               {busy ? "Sending…" : "Send"}
@@ -366,14 +308,13 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
               onClick={() =>
                 handleWithdrawToken(
                   mint,
-                  tokenAccount,
                   balance,
                   withdrawValue,
                   () => setWithdrawValue(""),
                   setWithdrawError,
                 )
               }
-              disabled={busy || !tokenAccount}
+              disabled={busy}
               className="w-full py-1.5 rounded-md bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-sm text-white transition-colors"
             >
               {busy ? "Withdrawing…" : "Withdraw"}
@@ -395,7 +336,6 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
           ? tokenPanel(
               "USDC",
               status?.usdcBalance ?? 0n,
-              status?.usdcTokenAccount ?? null,
               "topup-usdc",
               "withdraw-usdc",
               topupUsdc,
@@ -409,7 +349,6 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
           : tokenPanel(
               "USDT",
               status?.usdtBalance ?? 0n,
-              status?.usdtTokenAccount ?? null,
               "topup-usdt",
               "withdraw-usdt",
               topupUsdt,

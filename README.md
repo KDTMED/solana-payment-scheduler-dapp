@@ -102,7 +102,7 @@ the program cloned from devnet and the test mints pre-loaded.
 2. If you have no existing schedule, the **Initialize Schedule** form appears
    with the **Fund Status** panel below it. You can top up or withdraw funds
    at any time, even before creating a schedule.
-   - Enter a recipient address and their destination token account (ATA).
+   - Enter a recipient address.
    - Select USDC or USDT.
    - Add one or more payment entries with a date/time and amount.
    - Click **Create Schedule**.

@@ -87,8 +87,6 @@ describe("useFundStatus", () => {
 
     expect(result.current.status!.usdcBalance).toBe(0n);
     expect(result.current.status!.usdtBalance).toBe(0n);
-    expect(result.current.status!.usdcTokenAccount).toBeNull();
-    expect(result.current.status!.usdtTokenAccount).toBeNull();
   });
 
   it("marks gas as insufficient when SOL balance is low", async () => {
