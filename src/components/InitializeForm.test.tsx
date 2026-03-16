@@ -114,9 +114,9 @@ describe("InitializeForm", () => {
     expect((amountInput as HTMLInputElement).value).toBe("100");
   });
 
-  it("shows entry count and max", () => {
+  it("shows entry count", () => {
     render(<InitializeForm onSuccess={onSuccess} />);
-    expect(screen.getByText("(1/50)")).toBeInTheDocument();
+    expect(screen.getByText("(1)")).toBeInTheDocument();
   });
 
   it("shows validation error for past date entry", async () => {

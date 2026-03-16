@@ -760,18 +760,14 @@
     },
     {
       "code": 6004,
-      "name": "ScheduleTooLarge"
-    },
-    {
-      "code": 6005,
       "name": "InvalidPaymentAmount"
     },
     {
-      "code": 6006,
+      "code": 6005,
       "name": "InvalidPaymentIndex"
     },
     {
-      "code": 6007,
+      "code": 6006,
       "name": "ScheduleOverflow"
     }
   ],

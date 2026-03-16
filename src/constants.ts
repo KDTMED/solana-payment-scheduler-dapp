@@ -10,9 +10,6 @@ export const TOKEN_DECIMALS = 6;
 // Minimum SOL balance considered safe (0.05 SOL in lamports)
 export const MIN_GAS_LAMPORTS = 50_000_000n;
 
-// Max schedule entries the contract allows
-export const MAX_SCHEDULE_ENTRIES = 50;
-
 // --- Mints per cluster ---
 
 const USDC_MINTS: Record<string, string> = {

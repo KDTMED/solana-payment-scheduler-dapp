@@ -6,7 +6,6 @@ import IDL from "../idl/scheduled_transfer.json";
 import type { ScheduledTransfer } from "../idl/scheduled_transfer";
 import {
   TOKEN_DECIMALS,
-  MAX_SCHEDULE_ENTRIES,
   USDC_MINT,
   USDT_MINT,
 } from "../constants";
@@ -71,11 +70,6 @@ export function InitializeForm({ onSuccess }: Props) {
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   function addEntry() {
-    // FIX 6: Enforce MAX_SCHEDULE_ENTRIES on the client side
-    if (entries.length >= MAX_SCHEDULE_ENTRIES) {
-      alert(`Maximum of ${MAX_SCHEDULE_ENTRIES} payment entries allowed.`);
-      return;
-    }
     setEntries((e) => [...e, { date: "", amount: "" }]);
   }
 
@@ -114,12 +108,6 @@ export function InitializeForm({ onSuccess }: Props) {
 
     if (validEntries.length === 0) {
       errors.push("Add at least one payment entry.");
-    }
-
-    if (validEntries.length > MAX_SCHEDULE_ENTRIES) {
-      errors.push(
-        `Maximum of ${MAX_SCHEDULE_ENTRIES} payment entries allowed.`,
-      );
     }
 
     const now = Date.now() / 1000;
@@ -279,14 +267,13 @@ export function InitializeForm({ onSuccess }: Props) {
             <label className="text-xs text-slate-500">
               Payment Entries{" "}
               <span className="text-slate-600">
-                ({entries.length}/{MAX_SCHEDULE_ENTRIES})
+                ({entries.length})
               </span>
             </label>
             <button
               type="button"
               onClick={addEntry}
-              disabled={entries.length >= MAX_SCHEDULE_ENTRIES}
-              className="text-xs text-brand-400 hover:text-brand-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="text-xs text-brand-400 hover:text-brand-300"
             >
               + Add entry
             </button>

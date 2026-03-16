@@ -766,18 +766,14 @@ export type ScheduledTransfer = {
     },
     {
       "code": 6004,
-      "name": "scheduleTooLarge"
-    },
-    {
-      "code": 6005,
       "name": "invalidPaymentAmount"
     },
     {
-      "code": 6006,
+      "code": 6005,
       "name": "invalidPaymentIndex"
     },
     {
-      "code": 6007,
+      "code": 6006,
       "name": "scheduleOverflow"
     }
   ],
