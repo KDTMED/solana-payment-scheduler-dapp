@@ -26,6 +26,10 @@ vi.mock("../hooks/useFundStatus", () => ({
   useFundStatus: () => ({ status: null, refresh: vi.fn() }),
 }));
 
+vi.mock("../hooks/usePaymentRecords", () => ({
+  usePaymentRecords: () => ({ records: [], loading: false, refresh: vi.fn() }),
+}));
+
 const { mockConnection } = await import("../test/walletMock");
 
 const mockDecode = vi.fn();

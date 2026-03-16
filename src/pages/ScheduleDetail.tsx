@@ -10,6 +10,7 @@ import { ScheduleCard } from "../components/ScheduleCard";
 import { FundStatus } from "../components/FundStatus";
 import { PaymentsTable } from "../components/PaymentsTable";
 import { useFundStatus } from "../hooks/useFundStatus";
+import { usePaymentRecords } from "../hooks/usePaymentRecords";
 
 function decodeSchedule(
   pubkey: import("@solana/web3.js").PublicKey,
@@ -48,6 +49,7 @@ export function ScheduleDetail() {
   const [error, setError] = useState<string | null>(null);
 
   const { status, refresh: refreshFunds } = useFundStatus(schedule);
+  const { records, refresh: refreshRecords } = usePaymentRecords(schedule);
 
   const refresh = useCallback(async () => {
     if (!publicKey || id === undefined) {
@@ -95,6 +97,7 @@ export function ScheduleDetail() {
   function handleRefresh() {
     refresh();
     refreshFunds();
+    refreshRecords();
   }
 
   if (!publicKey) {
@@ -153,7 +156,7 @@ export function ScheduleDetail() {
 
       <ScheduleCard schedule={schedule} onClose={() => navigate("/")} />
       <FundStatus status={status} schedule={schedule} onRefresh={handleRefresh} />
-      <PaymentsTable schedule={schedule} records={[]} tokenType={schedule.tokenType} />
+      <PaymentsTable schedule={schedule} records={records} tokenType={schedule.tokenType} />
     </div>
   );
 }
