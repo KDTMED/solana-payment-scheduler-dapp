@@ -2,7 +2,7 @@ import { PublicKey } from "@solana/web3.js";
 import { CLUSTER } from "./config";
 
 export const PROGRAM_ID = new PublicKey(
-  "FdJ3mrACQM3FuCuG4yu3SawPkCyeuCs1tyc5EkHn6PrR",
+  "EJkDDVLS7ENMJqSAaPir3WGpBzPPqX1yhmAqRu1D85jf",
 );
 
 export const TOKEN_DECIMALS = 6;

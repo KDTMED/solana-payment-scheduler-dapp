@@ -1,5 +1,5 @@
 {
-  "address": "FdJ3mrACQM3FuCuG4yu3SawPkCyeuCs1tyc5EkHn6PrR",
+  "address": "EJkDDVLS7ENMJqSAaPir3WGpBzPPqX1yhmAqRu1D85jf",
   "metadata": {
     "name": "scheduled_transfer",
     "version": "0.1.0",
@@ -349,20 +349,20 @@
       ]
     },
     {
-      "name": "initialize_counter",
+      "name": "initialize_authority",
       "docs": [
-        "Initialize the per-authority counter. Must be called once before",
-        "creating any schedules for a given authority."
+        "Initialize the per-authority counter. Must be called by an admin.",
+        "The `authority` parameter specifies whose counter to initialize."
       ],
       "discriminator": [
-        67,
-        89,
-        100,
-        87,
-        231,
-        172,
-        35,
-        124
+        13,
+        186,
+        25,
+        16,
+        218,
+        31,
+        90,
+        1
       ],
       "accounts": [
         {
@@ -392,7 +392,7 @@
                 ]
               },
               {
-                "kind": "account",
+                "kind": "arg",
                 "path": "authority"
               }
             ]
@@ -433,7 +433,33 @@
           }
         },
         {
-          "name": "authority",
+          "name": "program_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin",
           "writable": true,
           "signer": true
         },
@@ -442,7 +468,12 @@
           "address": "11111111111111111111111111111111"
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "authority",
+          "type": "pubkey"
+        }
+      ]
     },
     {
       "name": "notify_funds_status",
@@ -484,6 +515,153 @@
         }
       ],
       "args": []
+    },
+    {
+      "name": "set_admins",
+      "docs": [
+        "Set the admin list for the program. Only callable by the program's",
+        "upgrade authority. Can be called repeatedly to update the admin list."
+      ],
+      "discriminator": [
+        152,
+        38,
+        44,
+        217,
+        51,
+        199,
+        77,
+        92
+      ],
+      "accounts": [
+        {
+          "name": "program_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program_data",
+          "docs": [
+            "program data account. Constrained to the correct program data PDA."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  197,
+                  179,
+                  169,
+                  133,
+                  41,
+                  240,
+                  100,
+                  38,
+                  15,
+                  159,
+                  58,
+                  170,
+                  22,
+                  185,
+                  202,
+                  167,
+                  215,
+                  187,
+                  204,
+                  145,
+                  161,
+                  170,
+                  64,
+                  178,
+                  10,
+                  22,
+                  126,
+                  191,
+                  60,
+                  162,
+                  221,
+                  18
+                ]
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                2,
+                168,
+                246,
+                145,
+                78,
+                136,
+                161,
+                176,
+                226,
+                16,
+                21,
+                62,
+                247,
+                99,
+                174,
+                43,
+                0,
+                194,
+                185,
+                61,
+                22,
+                193,
+                36,
+                210,
+                192,
+                83,
+                122,
+                16,
+                4,
+                128,
+                0,
+                0
+              ]
+            }
+          }
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "admins",
+          "type": {
+            "vec": "pubkey"
+          }
+        }
+      ]
     },
     {
       "name": "trigger_payment",
@@ -664,6 +842,19 @@
       ]
     },
     {
+      "name": "ProgramConfig",
+      "discriminator": [
+        196,
+        210,
+        90,
+        231,
+        144,
+        149,
+        140,
+        63
+      ]
+    },
+    {
       "name": "ScheduleCounter",
       "discriminator": [
         1,
@@ -772,6 +963,10 @@
     {
       "code": 6006,
       "name": "ScheduleOverflow"
+    },
+    {
+      "code": 6007,
+      "name": "Unauthorized"
     }
   ],
   "types": [
@@ -937,6 +1132,24 @@
           {
             "name": "executed_count",
             "type": "u8"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProgramConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admins",
+            "type": {
+              "vec": "pubkey"
+            }
           },
           {
             "name": "bump",

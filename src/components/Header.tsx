@@ -1,6 +1,7 @@
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { CLUSTER, clusterLabel } from "../config";
 
 const BADGE_COLORS: Record<string, string> = {
@@ -56,7 +57,15 @@ export function Header() {
             )}
           </span>
         </div>
-        <WalletMultiButton className="!bg-brand-600 hover:!bg-brand-700 !rounded-lg !text-sm !py-2 !px-4" />
+        <div className="flex items-center gap-3">
+          <Link
+            to="/admin"
+            className="text-xs text-slate-400 hover:text-white transition-colors"
+          >
+            Admin
+          </Link>
+          <WalletMultiButton className="!bg-brand-600 hover:!bg-brand-700 !rounded-lg !text-sm !py-2 !px-4" />
+        </div>
       </div>
     </header>
   );

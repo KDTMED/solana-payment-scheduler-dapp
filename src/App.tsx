@@ -15,6 +15,7 @@ import { ScheduleList } from "./components/ScheduleList";
 import { InitializeForm } from "./components/InitializeForm";
 import { useSchedules } from "./hooks/useSchedule";
 import { ScheduleDetail } from "./pages/ScheduleDetail";
+import { Admin } from "./pages/Admin";
 
 function Home() {
   const { publicKey } = useWallet();
@@ -96,6 +97,7 @@ export default function App() {
                 <Routes>
                   <Route path="/" element={<Home />} />
                   <Route path="/schedule/:id" element={<ScheduleDetail />} />
+                  <Route path="/admin" element={<Admin />} />
                 </Routes>
               </main>
             </div>

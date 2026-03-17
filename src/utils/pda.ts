@@ -10,6 +10,20 @@ export function findScheduleCounterPda(
   );
 }
 
+export function findProgramConfigPda(): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from("program_config")],
+    PROGRAM_ID,
+  );
+}
+
+export function findAuthorityRegistryPda(): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from("authority_registry")],
+    PROGRAM_ID,
+  );
+}
+
 export function findPaymentSchedulePda(
   authority: PublicKey,
   scheduleId: bigint,

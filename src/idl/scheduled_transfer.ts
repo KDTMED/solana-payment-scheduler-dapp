@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/scheduled_transfer.json`.
  */
 export type ScheduledTransfer = {
-  "address": "FdJ3mrACQM3FuCuG4yu3SawPkCyeuCs1tyc5EkHn6PrR",
+  "address": "EJkDDVLS7ENMJqSAaPir3WGpBzPPqX1yhmAqRu1D85jf",
   "metadata": {
     "name": "scheduledTransfer",
     "version": "0.1.0",
@@ -355,20 +355,20 @@ export type ScheduledTransfer = {
       ]
     },
     {
-      "name": "initializeCounter",
+      "name": "initializeAuthority",
       "docs": [
-        "Initialize the per-authority counter. Must be called once before",
-        "creating any schedules for a given authority."
+        "Initialize the per-authority counter. Must be called by an admin.",
+        "The `authority` parameter specifies whose counter to initialize."
       ],
       "discriminator": [
-        67,
-        89,
-        100,
-        87,
-        231,
-        172,
-        35,
-        124
+        13,
+        186,
+        25,
+        16,
+        218,
+        31,
+        90,
+        1
       ],
       "accounts": [
         {
@@ -398,7 +398,7 @@ export type ScheduledTransfer = {
                 ]
               },
               {
-                "kind": "account",
+                "kind": "arg",
                 "path": "authority"
               }
             ]
@@ -439,7 +439,33 @@ export type ScheduledTransfer = {
           }
         },
         {
-          "name": "authority",
+          "name": "programConfig",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin",
           "writable": true,
           "signer": true
         },
@@ -448,7 +474,12 @@ export type ScheduledTransfer = {
           "address": "11111111111111111111111111111111"
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "authority",
+          "type": "pubkey"
+        }
+      ]
     },
     {
       "name": "notifyFundsStatus",
@@ -490,6 +521,153 @@ export type ScheduledTransfer = {
         }
       ],
       "args": []
+    },
+    {
+      "name": "setAdmins",
+      "docs": [
+        "Set the admin list for the program. Only callable by the program's",
+        "upgrade authority. Can be called repeatedly to update the admin list."
+      ],
+      "discriminator": [
+        152,
+        38,
+        44,
+        217,
+        51,
+        199,
+        77,
+        92
+      ],
+      "accounts": [
+        {
+          "name": "programConfig",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "programData",
+          "docs": [
+            "program data account. Constrained to the correct program data PDA."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  197,
+                  179,
+                  169,
+                  133,
+                  41,
+                  240,
+                  100,
+                  38,
+                  15,
+                  159,
+                  58,
+                  170,
+                  22,
+                  185,
+                  202,
+                  167,
+                  215,
+                  187,
+                  204,
+                  145,
+                  161,
+                  170,
+                  64,
+                  178,
+                  10,
+                  22,
+                  126,
+                  191,
+                  60,
+                  162,
+                  221,
+                  18
+                ]
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                2,
+                168,
+                246,
+                145,
+                78,
+                136,
+                161,
+                176,
+                226,
+                16,
+                21,
+                62,
+                247,
+                99,
+                174,
+                43,
+                0,
+                194,
+                185,
+                61,
+                22,
+                193,
+                36,
+                210,
+                192,
+                83,
+                122,
+                16,
+                4,
+                128,
+                0,
+                0
+              ]
+            }
+          }
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "admins",
+          "type": {
+            "vec": "pubkey"
+          }
+        }
+      ]
     },
     {
       "name": "triggerPayment",
@@ -670,6 +848,19 @@ export type ScheduledTransfer = {
       ]
     },
     {
+      "name": "programConfig",
+      "discriminator": [
+        196,
+        210,
+        90,
+        231,
+        144,
+        149,
+        140,
+        63
+      ]
+    },
+    {
       "name": "scheduleCounter",
       "discriminator": [
         1,
@@ -778,6 +969,10 @@ export type ScheduledTransfer = {
     {
       "code": 6006,
       "name": "scheduleOverflow"
+    },
+    {
+      "code": 6007,
+      "name": "unauthorized"
     }
   ],
   "types": [
@@ -943,6 +1138,24 @@ export type ScheduledTransfer = {
           {
             "name": "executedCount",
             "type": "u8"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "programConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admins",
+            "type": {
+              "vec": "pubkey"
+            }
           },
           {
             "name": "bump",

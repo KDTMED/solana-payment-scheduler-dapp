@@ -10,7 +10,7 @@ program account that holds a list of future USDC/USDT transfers to a
 recipient. A separate keeper/crank calls `trigger_payment` on-chain when
 payments come due; this UI handles setup, funding, and monitoring.
 
-**Program ID (Devnet):** `FdJ3mrACQM3FuCuG4yu3SawPkCyeuCs1tyc5EkHn6PrR`
+**Program ID (Devnet):** `EJkDDVLS7ENMJqSAaPir3WGpBzPPqX1yhmAqRu1D85jf`
 
 ---
 
@@ -76,11 +76,14 @@ bun run test:coverage     # unit tests with coverage report
 
 ### Integration Tests
 
-Integration tests run against a local Solana validator with the program cloned
-from devnet. They test the full on-chain lifecycle: counter initialization,
-schedule creation, payment triggering, token withdrawal, and schedule closing.
+Integration tests run against a local Solana validator with the program
+deployed from the local build. They test the full on-chain lifecycle: admin
+setup, authority registration, schedule creation, payment triggering, token
+withdrawal, and schedule closing.
 
-**Prerequisites:** [Solana CLI](https://docs.solana.com/cli/install-solana-cli-tools) ≥ 2.3.1
+**Prerequisites:**
+- [Solana CLI](https://docs.solana.com/cli/install-solana-cli-tools) ≥ 2.3.1
+- Built program at `../solana-payment-scheduler-smartcontract/target/deploy/scheduled_transfer.so`
 
 ```bash
 # Terminal 1 — start a local validator with the program and token mints
@@ -90,18 +93,20 @@ bun run validator
 bun run test:integration
 ```
 
-The `validator` script generates USDC/USDT mint fixtures in
-`integration/fixtures/` (gitignored) and starts `solana-test-validator` with
-the program cloned from devnet and the test mints pre-loaded.
+The `validator` script generates USDC/USDT mint fixtures and an upgrade
+authority keypair in `integration/fixtures/` (gitignored) and starts
+`solana-test-validator` with the program deployed locally and the test mints
+pre-loaded.
 
 ---
 
 ## Usage
 
 1. **Connect wallet** using the button in the top-right corner.
-2. If you have no existing schedule, the **Initialize Schedule** form appears
-   with the **Fund Status** panel below it. You can top up or withdraw funds
-   at any time, even before creating a schedule.
+2. **Admin setup** (one-time, via `/admin` page):
+   - The program upgrade authority sets the admin list via **Set Admins**.
+   - An admin registers payment authorities via **Register Authority**.
+3. Once registered, use the **Initialize Schedule** form:
    - Enter a recipient address.
    - Select USDC or USDT.
    - Add one or more payment entries with a date/time and amount.
@@ -134,6 +139,7 @@ src/
     useFundStatus.ts     # Polls token + SOL balances every 15s
     useSchedule.ts       # Fetches and decodes schedule PDAs
   pages/
+    Admin.tsx            # Admin panel for set_admins and initialize_authority
     ScheduleDetail.tsx   # Single schedule detail view
   utils/
     format.ts            # Token amount, SOL, timestamp, duration helpers
@@ -157,8 +163,17 @@ integration/
 
 | Account           | Seeds                                                       |
 |-------------------|-------------------------------------------------------------|
+| `ProgramConfig`   | `["program_config"]`                                        |
+| `AuthorityRegistry` | `["authority_registry"]`                                  |
 | `ScheduleCounter` | `["schedule_counter", authority]`                           |
 | `PaymentSchedule` | `["payment_schedule", authority, schedule_id (u64 LE)]`     |
+
+The program uses a two-tier access control model:
+- The program's **upgrade authority** manages an admin list via `set_admins`,
+  stored in the `ProgramConfig` PDA.
+- Only **admins** can call `initialize_authority` to register new payment
+  authorities in the `AuthorityRegistry`.
+- Registered authorities can then create payment schedules.
 
 A `ScheduleCounter` PDA tracks the next available `schedule_id` per authority,
 allowing multiple independent schedules. Each schedule is dynamically sized to

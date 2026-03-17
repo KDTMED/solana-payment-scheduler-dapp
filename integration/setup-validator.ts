@@ -8,9 +8,13 @@
 import { Keypair, PublicKey } from "@solana/web3.js";
 import * as fs from "fs";
 import * as path from "path";
-import { execSync, spawn } from "child_process";
+import { spawn } from "child_process";
 
-const PROGRAM_ID = "FdJ3mrACQM3FuCuG4yu3SawPkCyeuCs1tyc5EkHn6PrR";
+const PROGRAM_ID = "EJkDDVLS7ENMJqSAaPir3WGpBzPPqX1yhmAqRu1D85jf";
+const PROGRAM_SO = path.resolve(
+  import.meta.dirname!,
+  "../../solana-payment-scheduler-smartcontract/target/deploy/scheduled_transfer.so",
+);
 const USDC_MINT = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU";
 const USDT_MINT = "EJwZgeZrdC8TXTQbQBoL6bfuAnFUUy1PVCMB4DYPzVaS";
 const TOKEN_PROGRAM_ID = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
@@ -89,6 +93,22 @@ if (fs.existsSync(mintAuthorityPath)) {
 
 console.log(`Mint authority: ${mintAuthority.publicKey.toBase58()}`);
 
+// Generate or load upgrade authority keypair (needed for admin setup in tests)
+const upgradeAuthorityPath = path.join(FIXTURES_DIR, "upgrade-authority.json");
+let upgradeAuthority: Keypair;
+if (fs.existsSync(upgradeAuthorityPath)) {
+  const raw = JSON.parse(fs.readFileSync(upgradeAuthorityPath, "utf-8"));
+  upgradeAuthority = Keypair.fromSecretKey(Uint8Array.from(raw));
+} else {
+  upgradeAuthority = Keypair.generate();
+  fs.writeFileSync(
+    upgradeAuthorityPath,
+    JSON.stringify(Array.from(upgradeAuthority.secretKey)),
+  );
+}
+
+console.log(`Upgrade authority: ${upgradeAuthority.publicKey.toBase58()}`);
+
 // Build USDC and USDT mint account files
 const usdcData = buildMintData(mintAuthority.publicKey, 6);
 const usdtData = buildMintData(mintAuthority.publicKey, 6);
@@ -108,10 +128,10 @@ console.log("\nStarting solana-test-validator...");
 const validator = spawn(
   "solana-test-validator",
   [
-    "--clone-upgradeable-program",
+    "--upgradeable-program",
     PROGRAM_ID,
-    "--url",
-    "devnet",
+    upgradeAuthorityPath,
+    PROGRAM_SO,
     "--account",
     USDC_MINT,
     usdcPath,

@@ -162,21 +162,16 @@ export function InitializeForm({ onSuccess }: Props) {
           };
         });
 
-      // initialize_counter must be called once per authority before creating
-      // the first schedule. Check if the counter PDA already exists.
+      // The authority must be registered by an admin via initialize_authority
+      // before creating any schedules. Check if the counter PDA exists.
       const [counterPda] = findScheduleCounterPda(wallet.publicKey);
       const counterInfo = await connection.getAccountInfo(counterPda);
-      let nextId = 0n;
       if (!counterInfo) {
-        await program.methods
-          .initializeCounter()
-          .accounts({ authority: wallet.publicKey })
-          .rpc({ commitment: "confirmed" });
-        // Freshly created counter starts at 0
-      } else {
-        const counter = program.coder.accounts.decode("scheduleCounter", counterInfo.data);
-        nextId = BigInt(counter.nextId.toString());
+        alert("Your wallet has not been registered as a payment authority. Please contact an admin to register you.");
+        return;
       }
+      const counter = program.coder.accounts.decode("scheduleCounter", counterInfo.data);
+      const nextId = BigInt(counter.nextId.toString());
 
       const [paymentSchedulePda] = findPaymentSchedulePda(wallet.publicKey, nextId);
 

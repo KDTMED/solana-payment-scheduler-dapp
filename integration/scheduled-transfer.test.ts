@@ -19,6 +19,8 @@ import {
   findScheduleCounterPda,
   findPaymentSchedulePda,
   loadMintAuthority,
+  loadUpgradeAuthority,
+  registerAuthority,
   USDC_MINT,
   USDT_MINT,
   BN,
@@ -36,44 +38,55 @@ describe("Scheduled Transfer – full lifecycle", () => {
   let authority: Keypair;
   let recipient: Keypair;
   let mintAuthority: Keypair;
+  let upgradeAuthority: Keypair;
 
   beforeAll(async () => {
     connection = getConnection();
     authority = Keypair.generate();
     recipient = Keypair.generate();
     mintAuthority = loadMintAuthority();
+    upgradeAuthority = loadUpgradeAuthority();
 
     await airdrop(connection, authority.publicKey);
     await airdrop(connection, recipient.publicKey);
+    await airdrop(connection, upgradeAuthority.publicKey);
 
     program = createProgram(connection, authority);
+
+    // Register authority via admin flow
+    await registerAuthority(program, upgradeAuthority, upgradeAuthority, authority.publicKey);
   });
 
-  describe("initialize_counter", () => {
+  describe("initialize_authority", () => {
     it("creates a schedule counter PDA", async () => {
       const [counterPda] = findScheduleCounterPda(authority.publicKey);
-
-      await program.methods
-        .initializeCounter()
-        .accountsPartial({
-          authority: authority.publicKey,
-        })
-        .signers([authority])
-        .rpc();
 
       const counter = await program.account.scheduleCounter.fetch(counterPda);
       expect(counter.authority.toBase58()).toBe(authority.publicKey.toBase58());
       expect(counter.nextId.toNumber()).toBe(0);
     });
 
-    it("rejects duplicate counter initialization", async () => {
+    it("rejects duplicate authority initialization", async () => {
+      const adminProgram = createProgram(connection, upgradeAuthority);
       await expect(
-        program.methods
-          .initializeCounter()
-          .accountsPartial({
-            authority: authority.publicKey,
-          })
-          .signers([authority])
+        adminProgram.methods
+          .initializeAuthority(authority.publicKey)
+          .accountsPartial({ admin: upgradeAuthority.publicKey })
+          .signers([upgradeAuthority])
+          .rpc(),
+      ).rejects.toThrow();
+    });
+
+    it("rejects non-admin callers", async () => {
+      const nonAdmin = Keypair.generate();
+      await airdrop(connection, nonAdmin.publicKey);
+      const nonAdminProgram = createProgram(connection, nonAdmin);
+      const newAuthority = Keypair.generate();
+      await expect(
+        nonAdminProgram.methods
+          .initializeAuthority(newAuthority.publicKey)
+          .accountsPartial({ admin: nonAdmin.publicKey })
+          .signers([nonAdmin])
           .rpc(),
       ).rejects.toThrow();
     });
@@ -325,20 +338,19 @@ describe("Scheduled Transfer – multiple schedules", () => {
   let program: Program<ScheduledTransfer>;
   let authority: Keypair;
   let recipient: Keypair;
+  let upgradeAuthority: Keypair;
 
   beforeAll(async () => {
     connection = getConnection();
     authority = Keypair.generate();
     recipient = Keypair.generate();
+    upgradeAuthority = loadUpgradeAuthority();
 
     await airdrop(connection, authority.publicKey);
+    await airdrop(connection, upgradeAuthority.publicKey);
     program = createProgram(connection, authority);
 
-    await program.methods
-      .initializeCounter()
-      .accountsPartial({ authority: authority.publicKey })
-      .signers([authority])
-      .rpc();
+    await registerAuthority(program, upgradeAuthority, upgradeAuthority, authority.publicKey);
   });
 
   it("creates multiple schedules with incrementing IDs", async () => {
@@ -382,6 +394,7 @@ describe("Scheduled Transfer – check_funds and check_gas_funds", () => {
   let authority: Keypair;
   let recipient: Keypair;
   let mintAuthority: Keypair;
+  let upgradeAuthority: Keypair;
   let schedulePda: PublicKey;
 
   beforeAll(async () => {
@@ -389,16 +402,14 @@ describe("Scheduled Transfer – check_funds and check_gas_funds", () => {
     authority = Keypair.generate();
     recipient = Keypair.generate();
     mintAuthority = loadMintAuthority();
+    upgradeAuthority = loadUpgradeAuthority();
 
     await airdrop(connection, authority.publicKey);
+    await airdrop(connection, upgradeAuthority.publicKey);
 
     program = createProgram(connection, authority);
 
-    await program.methods
-      .initializeCounter()
-      .accountsPartial({ authority: authority.publicKey })
-      .signers([authority])
-      .rpc();
+    await registerAuthority(program, upgradeAuthority, upgradeAuthority, authority.publicKey);
 
     const now = Math.floor(Date.now() / 1000);
     await program.methods
