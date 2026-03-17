@@ -10,7 +10,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { execSync, spawn } from "child_process";
 
-const PROGRAM_ID = "EJkDDVLS7ENMJqSAaPir3WGpBzPPqX1yhmAqRu1D85jf";
+const PROGRAM_ID = "FdJ3mrACQM3FuCuG4yu3SawPkCyeuCs1tyc5EkHn6PrR";
 const USDC_MINT = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU";
 const USDT_MINT = "EJwZgeZrdC8TXTQbQBoL6bfuAnFUUy1PVCMB4DYPzVaS";
 const TOKEN_PROGRAM_ID = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";

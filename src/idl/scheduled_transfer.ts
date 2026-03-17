@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/scheduled_transfer.json`.
  */
 export type ScheduledTransfer = {
-  "address": "EJkDDVLS7ENMJqSAaPir3WGpBzPPqX1yhmAqRu1D85jf",
+  "address": "FdJ3mrACQM3FuCuG4yu3SawPkCyeuCs1tyc5EkHn6PrR",
   "metadata": {
     "name": "scheduledTransfer",
     "version": "0.1.0",
