@@ -22,12 +22,14 @@ vi.mock("../utils/pda", () => ({
   findPaymentSchedulePda: () => [SCHEDULE_PK, 255],
 }));
 
+const mockRefreshFunds = vi.fn();
 vi.mock("../hooks/useFundStatus", () => ({
-  useFundStatus: () => ({ status: null, refresh: vi.fn() }),
+  useFundStatus: () => ({ status: null, refresh: mockRefreshFunds }),
 }));
 
+const mockRefreshRecords = vi.fn();
 vi.mock("../hooks/usePaymentRecords", () => ({
-  usePaymentRecords: () => ({ records: [], loading: false, refresh: vi.fn() }),
+  usePaymentRecords: () => ({ records: [], loading: false, refresh: mockRefreshRecords }),
 }));
 
 const { mockConnection } = await import("../test/walletMock");
@@ -61,8 +63,12 @@ vi.mock("../components/PaymentsTable", () => ({
 describe("ScheduleDetail", () => {
   beforeEach(() => {
     mockNavigate.mockReset();
+    mockRefreshFunds.mockReset();
+    mockRefreshRecords.mockReset();
     capturedOnClose = undefined;
     (mockConnection as any).getAccountInfo = vi.fn();
+    (mockConnection as any).onAccountChange.mockReset().mockReturnValue(42);
+    (mockConnection as any).removeAccountChangeListener.mockReset();
   });
 
   it("navigates to / when schedule is closed", async () => {
@@ -182,6 +188,134 @@ describe("ScheduleDetail", () => {
     expect(screen.getByTestId("payments-table")).toBeInTheDocument();
     expect(screen.getByText("↻")).toBeInTheDocument();
     expect(screen.getAllByText(/Back to schedules/).length).toBeGreaterThan(0);
+  });
+  it("subscribes to on-chain account changes after mount", async () => {
+    const AUTHORITY = new PublicKey("So11111111111111111111111111111111111111112");
+    const RECIPIENT = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+
+    (mockConnection as any).getAccountInfo.mockResolvedValue({
+      data: Buffer.from([]),
+      executable: false,
+      lamports: 1000000,
+      owner: new PublicKey("11111111111111111111111111111111"),
+    });
+
+    mockDecode.mockReturnValue({
+      authority: AUTHORITY,
+      schedule_id: { toString: () => "0" },
+      recipient: RECIPIENT,
+      token_type: { USDC: {} },
+      schedule: [],
+      executed_count: 0,
+      bump: 255,
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/schedule/0"]}>
+        <ScheduleDetail />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("schedule-card")).toBeInTheDocument();
+    });
+
+    expect(mockConnection.onAccountChange).toHaveBeenCalledWith(
+      SCHEDULE_PK,
+      expect.any(Function),
+    );
+  });
+
+  it("unsubscribes from account changes on unmount", async () => {
+    const AUTHORITY = new PublicKey("So11111111111111111111111111111111111111112");
+    const RECIPIENT = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+
+    (mockConnection as any).getAccountInfo.mockResolvedValue({
+      data: Buffer.from([]),
+      executable: false,
+      lamports: 1000000,
+      owner: new PublicKey("11111111111111111111111111111111"),
+    });
+
+    mockDecode.mockReturnValue({
+      authority: AUTHORITY,
+      schedule_id: { toString: () => "0" },
+      recipient: RECIPIENT,
+      token_type: { USDC: {} },
+      schedule: [],
+      executed_count: 0,
+      bump: 255,
+    });
+
+    const { unmount } = render(
+      <MemoryRouter initialEntries={["/schedule/0"]}>
+        <ScheduleDetail />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("schedule-card")).toBeInTheDocument();
+    });
+
+    unmount();
+
+    expect(mockConnection.removeAccountChangeListener).toHaveBeenCalledWith(42);
+  });
+
+  it("updates schedule and refreshes funds/records when account changes", async () => {
+    const AUTHORITY = new PublicKey("So11111111111111111111111111111111111111112");
+    const RECIPIENT = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+
+    (mockConnection as any).getAccountInfo.mockResolvedValue({
+      data: Buffer.from([]),
+      executable: false,
+      lamports: 1000000,
+      owner: new PublicKey("11111111111111111111111111111111"),
+    });
+
+    mockDecode.mockReturnValue({
+      authority: AUTHORITY,
+      schedule_id: { toString: () => "0" },
+      recipient: RECIPIENT,
+      token_type: { USDC: {} },
+      schedule: [
+        { timestamp: Date.now() / 1000 + 3600, amount: BigInt(5_000_000) },
+      ],
+      executed_count: 0,
+      bump: 255,
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/schedule/0"]}>
+        <ScheduleDetail />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("schedule-card")).toBeInTheDocument();
+    });
+
+    // Simulate on-chain account change callback
+    const callback = mockConnection.onAccountChange.mock.calls[0][1];
+    mockRefreshFunds.mockReset();
+    mockRefreshRecords.mockReset();
+
+    mockDecode.mockReturnValue({
+      authority: AUTHORITY,
+      schedule_id: { toString: () => "0" },
+      recipient: RECIPIENT,
+      token_type: { USDC: {} },
+      schedule: [
+        { timestamp: Date.now() / 1000 + 3600, amount: BigInt(5_000_000) },
+      ],
+      executed_count: 1,
+      bump: 255,
+    });
+
+    callback({ data: Buffer.from([]), executable: false, lamports: 1000000, owner: new PublicKey("11111111111111111111111111111111") });
+
+    expect(mockRefreshFunds).toHaveBeenCalled();
+    expect(mockRefreshRecords).toHaveBeenCalled();
   });
 });
 

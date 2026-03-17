@@ -14,6 +14,8 @@ export const mockConnection = {
   getParsedAccountInfo: vi.fn(),
   confirmTransaction: vi.fn(),
   getVersion: vi.fn().mockResolvedValue({ "solana-core": "1.0.0" }),
+  onAccountChange: vi.fn().mockReturnValue(0),
+  removeAccountChangeListener: vi.fn(),
 };
 
 vi.mock("@solana/wallet-adapter-react", () => ({

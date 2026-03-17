@@ -94,6 +94,31 @@ export function ScheduleDetail() {
     refresh();
   }, [refresh]);
 
+  // Subscribe to on-chain account changes for real-time updates
+  useEffect(() => {
+    if (!publicKey || id === undefined) return;
+
+    let scheduleId: bigint;
+    try {
+      scheduleId = BigInt(id);
+    } catch {
+      return;
+    }
+    if (scheduleId < 0n || scheduleId >= 2n ** 64n) return;
+
+    const [pda] = findPaymentSchedulePda(publicKey, scheduleId);
+    const subId = connection.onAccountChange(pda, (accountInfo) => {
+      const decoded = decodeSchedule(pda, accountInfo);
+      if (decoded) setSchedule(decoded);
+      refreshFunds();
+      refreshRecords();
+    });
+
+    return () => {
+      connection.removeAccountChangeListener(subId);
+    };
+  }, [connection, publicKey, id, refreshFunds, refreshRecords]);
+
   function handleRefresh() {
     refresh();
     refreshFunds();
