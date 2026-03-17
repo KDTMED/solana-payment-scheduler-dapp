@@ -131,22 +131,33 @@ describe("Scheduled Transfer – full lifecycle", () => {
       ).rejects.toThrow();
     });
 
-    it("rejects schedule with >50 entries", async () => {
+    it("accepts more than 50 schedules (no fixed limit)", async () => {
       const now = Math.floor(Date.now() / 1000);
-      const tooMany = Array.from({ length: 51 }, (_, i) => ({
-        timestamp: new BN(now + 60 + i),
-        amount: new BN(1_000_000),
-      }));
-      await expect(
-        program.methods
-          .initialize(tooMany, recipient.publicKey, { usdc: {} })
+
+      // Create 50 more schedules (schedule IDs 1–50) to exceed the old cap
+      for (let i = 1; i <= 50; i++) {
+        await program.methods
+          .initialize(
+            [{ timestamp: new BN(now + 3600 + i), amount: new BN(1_000_000) }],
+            recipient.publicKey,
+            { usdc: {} },
+          )
           .accountsPartial({
             authority: authority.publicKey,
             mint: USDC_MINT,
           })
           .signers([authority])
-          .rpc(),
-      ).rejects.toThrow();
+          .rpc();
+      }
+
+      const [counterPda] = findScheduleCounterPda(authority.publicKey);
+      const counter = await program.account.scheduleCounter.fetch(counterPda);
+      expect(counter.nextId.toNumber()).toBe(51);
+
+      const [schedulePda] = findPaymentSchedulePda(authority.publicKey, 50n);
+      const schedule =
+        await program.account.paymentSchedule.fetch(schedulePda);
+      expect(schedule.schedule.length).toBe(1);
     });
   });
 

@@ -161,8 +161,8 @@ integration/
 | `PaymentSchedule` | `["payment_schedule", authority, schedule_id (u64 LE)]`     |
 
 A `ScheduleCounter` PDA tracks the next available `schedule_id` per authority,
-allowing multiple independent schedules. Up to **50** payment entries per
-schedule.
+allowing multiple independent schedules. Each schedule is dynamically sized to
+fit exactly the number of payments provided (no fixed upper limit).
 
 ---
 

@@ -170,6 +170,9 @@
         },
         {
           "name": "payment_schedule",
+          "docs": [
+            "schedule length. PDA seeds are verified by the `seeds` constraint."
+          ],
           "writable": true,
           "pda": {
             "seeds": [

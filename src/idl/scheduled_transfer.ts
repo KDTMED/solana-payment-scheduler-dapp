@@ -176,6 +176,9 @@ export type ScheduledTransfer = {
         },
         {
           "name": "paymentSchedule",
+          "docs": [
+            "schedule length. PDA seeds are verified by the `seeds` constraint."
+          ],
           "writable": true,
           "pda": {
             "seeds": [
