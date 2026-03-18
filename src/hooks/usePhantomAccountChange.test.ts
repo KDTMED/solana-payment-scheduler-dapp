@@ -11,11 +11,13 @@ const otherPublicKey = new PublicKey(
 );
 
 const mockEmit = vi.fn();
+const mockDisconnect = vi.fn();
 
 vi.mock("@solana/wallet-adapter-react", () => ({
   useWallet: () => ({
     publicKey: mockPublicKey,
     wallet: { adapter: { emit: mockEmit } },
+    disconnect: mockDisconnect,
   }),
 }));
 
@@ -31,6 +33,7 @@ describe("usePhantomAccountChange", () => {
       solana: { connect: mockPhantomConnect },
     };
     mockEmit.mockClear();
+    mockDisconnect.mockClear();
   });
 
   afterEach(() => {
@@ -68,6 +71,20 @@ describe("usePhantomAccountChange", () => {
     // Verify it's the right key
     const emittedKey = mockEmit.mock.calls[0][1] as PublicKey;
     expect(emittedKey.toBase58()).toBe(otherPublicKey.toBase58());
+  });
+
+  it("calls disconnect when phantom rejects the trusted connection", async () => {
+    renderHook(() => usePhantomAccountChange(500));
+
+    // First poll — same key, no disconnect
+    await vi.advanceTimersByTimeAsync(600);
+    expect(mockDisconnect).not.toHaveBeenCalled();
+
+    // Phantom rejects (user disconnected in wallet UI)
+    mockPhantomConnect.mockRejectedValue(new Error("User rejected"));
+
+    await vi.advanceTimersByTimeAsync(600);
+    expect(mockDisconnect).toHaveBeenCalledOnce();
   });
 
   it("does not poll when phantom is not available", async () => {

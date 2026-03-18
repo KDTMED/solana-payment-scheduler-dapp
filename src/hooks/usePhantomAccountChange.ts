@@ -3,17 +3,20 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 
 /**
- * Polls Phantom to detect account changes on localhost where
- * Phantom doesn't emit wallet standard `change` events.
+ * Polls Phantom to detect account changes and disconnections on localhost
+ * where Phantom doesn't emit wallet standard `change` events.
  *
- * When a change is detected, emits a `connect` event on the adapter
- * with the new public key, which React's WalletProviderBase listens for.
+ * When an account change is detected, emits a `connect` event on the adapter
+ * with the new public key. When a disconnection is detected (Phantom rejects
+ * the trusted connection), calls `disconnect()` on the adapter.
  */
 export function usePhantomAccountChange(intervalMs = 1000) {
-  const { publicKey, wallet } = useWallet();
+  const { publicKey, wallet, disconnect } = useWallet();
   const lastKey = useRef<string | null>(null);
   const adapterRef = useRef(wallet?.adapter ?? null);
   adapterRef.current = wallet?.adapter ?? null;
+  const disconnectRef = useRef(disconnect);
+  disconnectRef.current = disconnect;
 
   useEffect(() => {
     if (publicKey) {
@@ -39,7 +42,10 @@ export function usePhantomAccountChange(intervalMs = 1000) {
           adapterRef.current?.emit("connect", newKey);
         }
       } catch {
-        // Wallet not trusted or unavailable — ignore
+        // Phantom rejected the trusted connection — user disconnected
+        // from the dApp in the wallet UI.
+        lastKey.current = null;
+        disconnectRef.current();
       }
     }, intervalMs);
 
