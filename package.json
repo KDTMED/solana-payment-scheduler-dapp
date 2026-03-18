@@ -17,7 +17,7 @@
     "test:coverage": "vitest run --coverage",
     "test:integration": "vitest run --config integration/vitest.config.ts integration/",
     "validator": "bun integration/setup-validator.ts",
-    "predeploy": "bun run build:devnet",
+    "predeploy": "bun run build:mainnet",
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
