@@ -7,6 +7,7 @@ import { FundStatus as FundStatusType, PaymentSchedule } from "../types";
 import { mockWallet, mockConnection } from "../test/walletMock";
 
 vi.mock("@solana/spl-token", () => ({
+  createAssociatedTokenAccountInstruction: vi.fn(() => ({ keys: [], programId: new PublicKey("11111111111111111111111111111111") })),
   createTransferInstruction: vi.fn(() => ({ keys: [], programId: new PublicKey("11111111111111111111111111111111") })),
   getAssociatedTokenAddress: vi.fn(() => Promise.resolve(new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe1bJ"))),
   TOKEN_PROGRAM_ID: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
@@ -300,6 +301,24 @@ describe("FundStatus — async handlers", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Enter a valid positive amount.")).toBeInTheDocument();
+    });
+  });
+
+  it("handleTopupToken creates ATA when destination account does not exist", async () => {
+    (mockConnection as any).getAccountInfo.mockResolvedValueOnce(null);
+
+    const { createAssociatedTokenAccountInstruction } = await import("@solana/spl-token");
+
+    render(<FundStatus status={makeStatus()} schedule={makeSchedule("USDC")} onRefresh={onRefresh} />);
+    fireEvent.click(screen.getByText("Top Up"));
+    fireEvent.change(screen.getByPlaceholderText("Amount (USDC)"), { target: { value: "5" } });
+    fireEvent.click(screen.getByText("Send"));
+
+    await waitFor(() => {
+      expect(createAssociatedTokenAccountInstruction).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(mockWallet.sendTransaction).toHaveBeenCalled();
     });
   });
 

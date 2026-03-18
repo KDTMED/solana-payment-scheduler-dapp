@@ -6,6 +6,7 @@ import {
   PublicKey,
 } from "@solana/web3.js";
 import {
+  createAssociatedTokenAccountInstruction,
   createTransferInstruction,
   getAssociatedTokenAddress,
   TOKEN_PROGRAM_ID,
@@ -112,7 +113,20 @@ export function FundStatus({ status, schedule, onRefresh }: Props) {
     try {
       const userAta = await getAssociatedTokenAddress(mint, publicKey);
       const sourceTokenAccount = await getAssociatedTokenAddress(mint, schedule.publicKey, true);
-      const tx = new Transaction().add(
+      const tx = new Transaction();
+      // Create the schedule's ATA if it doesn't exist yet
+      const ataInfo = await connection.getAccountInfo(sourceTokenAccount);
+      if (!ataInfo) {
+        tx.add(
+          createAssociatedTokenAccountInstruction(
+            publicKey,
+            sourceTokenAccount,
+            schedule.publicKey,
+            mint,
+          ),
+        );
+      }
+      tx.add(
         createTransferInstruction(
           userAta,
           sourceTokenAccount,
