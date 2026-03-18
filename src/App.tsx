@@ -5,7 +5,6 @@ import {
   useWallet,
 } from "@solana/wallet-adapter-react";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
-import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
 import { SolflareWalletAdapter } from "@solana/wallet-adapter-solflare";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
@@ -16,6 +15,12 @@ import { InitializeForm } from "./components/InitializeForm";
 import { useSchedules } from "./hooks/useSchedule";
 import { ScheduleDetail } from "./pages/ScheduleDetail";
 import { Admin } from "./pages/Admin";
+import { usePhantomAccountChange } from "./hooks/usePhantomAccountChange";
+
+function AccountChangeWatcher() {
+  usePhantomAccountChange();
+  return null;
+}
 
 function Home() {
   const { publicKey } = useWallet();
@@ -79,7 +84,7 @@ function Home() {
 export default function App() {
   const endpoint = useMemo(() => getEndpoint(), []);
   const wallets = useMemo(
-    () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
+    () => [new SolflareWalletAdapter()],
     [],
   );
 
@@ -91,6 +96,7 @@ export default function App() {
       >
         <WalletProvider wallets={wallets} autoConnect>
           <WalletModalProvider>
+            <AccountChangeWatcher />
             <div className="min-h-screen bg-slate-950">
               <Header />
               <main className="max-w-5xl mx-auto px-4 py-8">
