@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { Program, AnchorProvider } from "@coral-xyz/anchor";
@@ -178,6 +179,9 @@ export function Admin() {
 
   return (
     <div className="space-y-6">
+      <Link to="/" className="text-sm text-indigo-400 hover:text-indigo-300">
+        &larr; Back to Home
+      </Link>
       <h2 className="text-lg font-semibold text-white">
         Program Administration
       </h2>
