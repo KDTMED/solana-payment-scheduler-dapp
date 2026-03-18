@@ -19,7 +19,7 @@ import * as fs from "fs";
 import * as path from "path";
 
 export const PROGRAM_ID = new PublicKey(
-  "EJkDDVLS7ENMJqSAaPir3WGpBzPPqX1yhmAqRu1D85jf",
+  "BcrXS7PaXohfXWXLyiTmxEe3ujnWzkQY1cC9Q85aHaKD",
 );
 
 // Devnet mint addresses (must match what the on-chain program expects)

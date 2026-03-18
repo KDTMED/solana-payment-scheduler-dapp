@@ -10,7 +10,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { spawn } from "child_process";
 
-const PROGRAM_ID = "EJkDDVLS7ENMJqSAaPir3WGpBzPPqX1yhmAqRu1D85jf";
+const PROGRAM_ID = "BcrXS7PaXohfXWXLyiTmxEe3ujnWzkQY1cC9Q85aHaKD";
 const PROGRAM_SO = path.resolve(
   import.meta.dirname!,
   "../../solana-payment-scheduler-smartcontract/target/deploy/scheduled_transfer.so",
@@ -130,8 +130,8 @@ const validator = spawn(
   [
     "--upgradeable-program",
     PROGRAM_ID,
-    upgradeAuthorityPath,
     PROGRAM_SO,
+    upgradeAuthorityPath,
     "--account",
     USDC_MINT,
     usdcPath,
