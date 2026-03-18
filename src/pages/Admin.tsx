@@ -5,7 +5,7 @@ import { PublicKey } from "@solana/web3.js";
 import { Program, AnchorProvider } from "@coral-xyz/anchor";
 import IDL from "../idl/scheduled_transfer.json";
 import type { ScheduledTransfer } from "../idl/scheduled_transfer";
-import { findProgramConfigPda, findScheduleCounterPda } from "../utils/pda";
+import { findProgramConfigPda, findScheduleCounterPda, findAuthorityRegistryPda } from "../utils/pda";
 import { useIsUpgradeAuthority } from "../hooks/useIsUpgradeAuthority";
 
 function isValidPubkey(addr: string): boolean {
@@ -23,6 +23,7 @@ export function Admin() {
   const [admins, setAdmins] = useState<string[]>([""]);
   const [currentAdmins, setCurrentAdmins] = useState<string[]>([]);
   const [newAuthority, setNewAuthority] = useState("");
+  const [registeredAuthorities, setRegisteredAuthorities] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const isUpgradeAuthority = useIsUpgradeAuthority();
@@ -45,6 +46,19 @@ export function Admin() {
         );
         setCurrentAdmins(
           config.admins.map((a: PublicKey) => a.toBase58()),
+        );
+      }
+
+      // Fetch authority registry
+      const [registryPda] = findAuthorityRegistryPda();
+      const registryInfo = await connection.getAccountInfo(registryPda);
+      if (registryInfo && registryInfo.data.length > 0) {
+        const registry = program.coder.accounts.decode(
+          "authorityRegistry",
+          registryInfo.data,
+        );
+        setRegisteredAuthorities(
+          registry.authorities.map((a: PublicKey) => a.toBase58()),
         );
       }
     } catch {
@@ -156,6 +170,7 @@ export function Admin() {
         `Authority ${authorityPubkey.toBase58()} registered successfully.`,
       );
       setNewAuthority("");
+      fetchConfig();
     } catch (err: any) {
       console.error("Failed to initialize authority:", err);
       setMessage(
@@ -202,6 +217,22 @@ export function Admin() {
           </h3>
           <div className="space-y-1">
             {currentAdmins.map((a, i) => (
+              <p key={i} className="text-xs text-slate-300 font-mono">
+                {a}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Registered Authorities */}
+      {registeredAuthorities.length > 0 && (
+        <div className="rounded-xl bg-slate-900 border border-slate-800 p-6">
+          <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
+            Registered Authorities
+          </h3>
+          <div className="space-y-1">
+            {registeredAuthorities.map((a, i) => (
               <p key={i} className="text-xs text-slate-300 font-mono">
                 {a}
               </p>

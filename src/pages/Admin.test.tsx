@@ -32,6 +32,11 @@ describe("Admin", () => {
     expect(screen.queryByText("Register Payment Authority")).not.toBeInTheDocument();
   });
 
+  it("hides Registered Authorities panel when registry has no data", () => {
+    render(<MemoryRouter><Admin /></MemoryRouter>);
+    expect(screen.queryByText("Registered Authorities")).not.toBeInTheDocument();
+  });
+
   it("shows connect wallet message when no wallet connected", () => {
     const origKey = mockWallet.publicKey;
     mockWallet.publicKey = null as any;

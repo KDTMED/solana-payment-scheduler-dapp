@@ -129,6 +129,56 @@ export type ScheduledTransfer = {
       "args": []
     },
     {
+      "name": "getAuthorityRegistry",
+      "docs": [
+        "No-op view instruction that exists solely to expose",
+        "`AuthorityRegistry` in the generated IDL."
+      ],
+      "discriminator": [
+        14,
+        183,
+        15,
+        191,
+        177,
+        106,
+        252,
+        245
+      ],
+      "accounts": [
+        {
+          "name": "authorityRegistry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "initialize",
       "discriminator": [
         175,
@@ -835,6 +885,19 @@ export type ScheduledTransfer = {
   ],
   "accounts": [
     {
+      "name": "authorityRegistry",
+      "discriminator": [
+        239,
+        214,
+        161,
+        141,
+        212,
+        86,
+        122,
+        109
+      ]
+    },
+    {
       "name": "paymentSchedule",
       "discriminator": [
         220,
@@ -976,6 +1039,24 @@ export type ScheduledTransfer = {
     }
   ],
   "types": [
+    {
+      "name": "authorityRegistry",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authorities",
+            "type": {
+              "vec": "pubkey"
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
     {
       "name": "failureReason",
       "type": {
