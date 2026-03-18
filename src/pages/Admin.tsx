@@ -6,6 +6,7 @@ import { Program, AnchorProvider } from "@coral-xyz/anchor";
 import IDL from "../idl/scheduled_transfer.json";
 import type { ScheduledTransfer } from "../idl/scheduled_transfer";
 import { findProgramConfigPda, findScheduleCounterPda } from "../utils/pda";
+import { useIsUpgradeAuthority } from "../hooks/useIsUpgradeAuthority";
 
 function isValidPubkey(addr: string): boolean {
   try {
@@ -24,6 +25,7 @@ export function Admin() {
   const [newAuthority, setNewAuthority] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const isUpgradeAuthority = useIsUpgradeAuthority();
 
   const fetchConfig = useCallback(async () => {
     try {
@@ -209,7 +211,7 @@ export function Admin() {
       )}
 
       {/* Set Admins (upgrade authority only) */}
-      <div className="rounded-xl bg-slate-900 border border-slate-800 p-6">
+      {isUpgradeAuthority && <div className="rounded-xl bg-slate-900 border border-slate-800 p-6">
         <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">
           Set Admin List
         </h3>
@@ -249,10 +251,10 @@ export function Admin() {
             {busy ? "Updating…" : "Set Admins"}
           </button>
         </form>
-      </div>
+      </div>}
 
       {/* Initialize Authority (admin only) */}
-      <div className="rounded-xl bg-slate-900 border border-slate-800 p-6">
+      {wallet.publicKey && currentAdmins.includes(wallet.publicKey.toBase58()) && <div className="rounded-xl bg-slate-900 border border-slate-800 p-6">
         <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">
           Register Payment Authority
         </h3>
@@ -280,7 +282,7 @@ export function Admin() {
             {busy ? "Registering…" : "Register Authority"}
           </button>
         </form>
-      </div>
+      </div>}
     </div>
   );
 }

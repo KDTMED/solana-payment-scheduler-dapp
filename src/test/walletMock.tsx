@@ -43,3 +43,7 @@ vi.mock("../utils/pda", () => {
 vi.mock("../hooks/useIsAdmin", () => ({
   useIsAdmin: () => true,
 }));
+
+vi.mock("../hooks/useIsUpgradeAuthority", () => ({
+  useIsUpgradeAuthority: () => true,
+}));
