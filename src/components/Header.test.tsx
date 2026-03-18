@@ -19,4 +19,9 @@ describe("Header", () => {
     render(<MemoryRouter><Header /></MemoryRouter>);
     expect(screen.getByText("Connect Wallet")).toBeInTheDocument();
   });
+
+  it("renders the truncated program address", () => {
+    render(<MemoryRouter><Header /></MemoryRouter>);
+    expect(screen.getByText("BcrXS7Pa…")).toBeInTheDocument();
+  });
 });

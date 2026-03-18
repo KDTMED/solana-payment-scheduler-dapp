@@ -3,6 +3,7 @@ import { useConnection } from "@solana/wallet-adapter-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { CLUSTER, clusterLabel } from "../config";
+import { PROGRAM_ID } from "../constants";
 import { useIsAdmin } from "../hooks/useIsAdmin";
 
 const BADGE_COLORS: Record<string, string> = {
@@ -45,6 +46,9 @@ export function Header() {
           <h1 className="text-lg font-semibold text-white">
             Scheduled Transfer
           </h1>
+          <span className="hidden sm:inline text-xs text-slate-500 font-mono truncate max-w-[120px]" title={PROGRAM_ID.toBase58()}>
+            {PROGRAM_ID.toBase58().slice(0, 8)}…
+          </span>
           <span
             className={`ml-2 inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-0.5 rounded-full border ${badgeColor}`}
           >
