@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { Program, AnchorProvider, BN } from "@coral-xyz/anchor";
@@ -68,6 +68,21 @@ export function InitializeForm({ onSuccess }: Props) {
   ]);
   const [busy, setBusy] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [isAuthority, setIsAuthority] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!wallet.publicKey) {
+      setIsAuthority(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const [counterPda] = findScheduleCounterPda(wallet.publicKey!);
+      const info = await connection.getAccountInfo(counterPda);
+      if (!cancelled) setIsAuthority(info !== null);
+    })();
+    return () => { cancelled = true; };
+  }, [wallet.publicKey, connection]);
 
   function addEntry() {
     setEntries((e) => [...e, { date: "", amount: "" }]);
@@ -198,6 +213,19 @@ export function InitializeForm({ onSuccess }: Props) {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (isAuthority === false) {
+    return (
+      <div className="rounded-xl bg-slate-900 border border-slate-800 p-6">
+        <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">
+          Initialize Schedule
+        </h2>
+        <p className="text-sm text-slate-500">
+          Your wallet is not registered as a payment authority. Please contact an admin to get registered.
+        </p>
+      </div>
+    );
   }
 
   return (
