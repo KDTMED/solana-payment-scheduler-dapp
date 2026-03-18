@@ -283,7 +283,11 @@ describe("Scheduled Transfer – full lifecycle", () => {
 
   describe("close", () => {
     it("closes a fresh schedule and returns rent", async () => {
-      // Create a fresh schedule (schedule_id = 1 since counter was incremented)
+      // Read counter to determine what ID the next schedule will get
+      const [counterPda] = findScheduleCounterPda(authority.publicKey);
+      const counterBefore = await program.account.scheduleCounter.fetch(counterPda);
+      const freshId = BigInt(counterBefore.nextId.toString());
+
       const now = Math.floor(Date.now() / 1000);
       await program.methods
         .initialize(
@@ -298,7 +302,7 @@ describe("Scheduled Transfer – full lifecycle", () => {
         .signers([authority])
         .rpc();
 
-      const [freshPda] = findPaymentSchedulePda(authority.publicKey, 1n);
+      const [freshPda] = findPaymentSchedulePda(authority.publicKey, freshId);
       // The source ATA was auto-created by initialize
       const sourceAta = await getAssociatedTokenAddress(
         USDC_MINT,
