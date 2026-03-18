@@ -77,9 +77,13 @@ export function InitializeForm({ onSuccess }: Props) {
     }
     let cancelled = false;
     (async () => {
-      const [counterPda] = findScheduleCounterPda(wallet.publicKey!);
-      const info = await connection.getAccountInfo(counterPda);
-      if (!cancelled) setIsAuthority(info !== null);
+      try {
+        const [counterPda] = findScheduleCounterPda(wallet.publicKey!);
+        const info = await connection.getAccountInfo(counterPda);
+        if (!cancelled) setIsAuthority(info !== null);
+      } catch {
+        if (!cancelled) setIsAuthority(false);
+      }
     })();
     return () => { cancelled = true; };
   }, [wallet.publicKey, connection]);
