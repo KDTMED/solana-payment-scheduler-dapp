@@ -51,6 +51,17 @@ payments come due; this UI handles setup, funding, and monitoring.
 - A Solana wallet browser extension (Phantom or Solflare)
 - Devnet SOL for fees (`solana airdrop 1` or the [faucet](https://faucet.solana.com))
 
+Update the program ID in the following locations:
+ - integration/helpers.ts L22:  "BcrXS7PaXohfXWXLyiTmxEe3ujnWzkQY1cC9Q85aHaKD",
+ - integration/setup-validator.ts L13:const PROGRAM_ID = "BcrXS7PaXohfXWXLyiTmxEe3ujnWzkQY1cC9Q85aHaKD";
+ - src/constants.ts L5:  "BcrXS7PaXohfXWXLyiTmxEe3ujnWzkQY1cC9Q85aHaKD",
+
+Copy the IDL and types from the smart contract build output to the dapp:
+```bash
+cp solana-payment-scheduler-smartcontract/target/types/scheduled_transfer.ts solana-payment-scheduler-dapp/src/idl/
+cp solana-payment-scheduler-smartcontract/target/idl/scheduled_transfer.json solana-payment-scheduler-dapp/src/idl/
+```
+
 ### Install & Run
 
 ```bash
@@ -101,6 +112,16 @@ pre-loaded.
 ---
 
 ## Usage
+
+Install John 'solana-private-key' to get the private key that can be imported into phantom:
+```bash
+cargo install solana-private-key
+```
+
+Then run the following command to get the bs58 representation of the private key (in ~/.config/solana/id.json):
+```bash
+solana-private-key
+```
 
 1. **Connect wallet** using the button in the top-right corner.
 2. **Admin setup** (one-time, via `/admin` page):
