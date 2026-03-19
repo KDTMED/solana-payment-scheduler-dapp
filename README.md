@@ -61,7 +61,10 @@ cp solana-payment-scheduler-smartcontract/target/idl/scheduled_transfer.json sol
 
 ```bash
 bun install
-bun dev
+bun dev              # runs on devnet by default
+bun dev:local        # runs on local validator
+bun dev:devnet       # runs on devnet (explicit)
+bun dev:mainnet      # runs on mainnet-beta
 ```
 
 Open [http://localhost:5173](http://localhost:5173) in your browser.
@@ -69,8 +72,61 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 ### Build
 
 ```bash
-bun run build
+bun run build         # builds for devnet by default
+bun run build:devnet  # builds for devnet (explicit)
+bun run build:mainnet # builds for mainnet-beta
 ```
+
+### Deployment
+
+#### GitHub Pages
+
+The project is configured to deploy to GitHub Pages using the `gh-pages` package. You can deploy devnet and mainnet to different paths:
+
+```bash
+bun run deploy:devnet   # deploys devnet build to /devnet path
+bun run deploy:mainnet  # deploys mainnet build to /mainnet path
+bun run deploy:both     # deploys both versions
+```
+
+After deployment, the apps will be accessible at:
+- Devnet: `https://yourusername.github.io/repo-name/devnet/`
+- Mainnet: `https://yourusername.github.io/repo-name/mainnet/`
+
+**First-time setup:**
+1. Enable GitHub Pages in your repository settings
+2. Set the source to the `gh-pages` branch
+3. Run `bun run deploy`
+
+#### Other Hosting Platforms
+
+After building for your target network, deploy the `dist/` folder to any static hosting service:
+
+**Vercel:**
+```bash
+bun run build:mainnet
+vercel --prod
+```
+
+**Netlify:**
+```bash
+bun run build:mainnet
+netlify deploy --prod --dir=dist
+```
+
+**AWS S3 + CloudFront:**
+```bash
+bun run build:mainnet
+aws s3 sync dist/ s3://your-bucket-name
+```
+
+**Custom Server:**
+```bash
+bun run build:mainnet
+scp -r dist/* user@yourserver:/var/www/html/
+```
+
+All deployment targets should serve the built static files from the `dist/` directory with proper MIME types and enable SPA routing (redirect all routes to `index.html`).
 
 ### Test
 
@@ -199,7 +255,7 @@ fit exactly the number of payments provided (no fixed upper limit).
 
 ## Network
 
-The app runs on **Devnet** by default. Switch clusters via environment variable:
+The app runs on **Devnet** by default. To run on other networks, use the network-specific npm scripts shown above (`dev:local`, `dev:mainnet`, etc.) or set the cluster via environment variable:
 
 ```bash
 VITE_SOLANA_CLUSTER=localnet bun dev       # local validator
