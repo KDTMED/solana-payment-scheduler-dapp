@@ -18,6 +18,8 @@ import {
   getTokenBalance,
   findScheduleCounterPda,
   findPaymentSchedulePda,
+  findProgramConfigPda,
+  findProgramDataPda,
   loadMintAuthority,
   loadUpgradeAuthority,
   registerAuthority,
@@ -475,5 +477,174 @@ describe("Scheduled Transfer – check_funds and check_gas_funds", () => {
       .accountsPartial({ authority: authority.publicKey })
       .signers([authority])
       .rpc();
+  });
+});
+
+describe("Scheduled Transfer – setAdmins", () => {
+  let connection: Connection;
+  let upgradeAuthority: Keypair;
+
+  beforeAll(async () => {
+    connection = getConnection();
+    upgradeAuthority = loadUpgradeAuthority();
+    await airdrop(connection, upgradeAuthority.publicKey);
+  });
+
+  it("sets a single admin", async () => {
+    const admin = Keypair.generate();
+    const program = createProgram(connection, upgradeAuthority);
+
+    await program.methods
+      .setAdmins([admin.publicKey])
+      .accountsPartial({
+        payer: upgradeAuthority.publicKey,
+        programData: findProgramDataPda()[0],
+      })
+      .signers([upgradeAuthority])
+      .rpc({ commitment: "confirmed" });
+
+    const [configPda] = findProgramConfigPda();
+    const config = await program.account.programConfig.fetch(configPda);
+    expect(config.admins).toHaveLength(1);
+    expect(config.admins[0].toBase58()).toBe(admin.publicKey.toBase58());
+  });
+
+  it("sets multiple admins", async () => {
+    const admin1 = Keypair.generate();
+    const admin2 = Keypair.generate();
+    const admin3 = Keypair.generate();
+    const program = createProgram(connection, upgradeAuthority);
+
+    await program.methods
+      .setAdmins([admin1.publicKey, admin2.publicKey, admin3.publicKey])
+      .accountsPartial({
+        payer: upgradeAuthority.publicKey,
+        programData: findProgramDataPda()[0],
+      })
+      .signers([upgradeAuthority])
+      .rpc({ commitment: "confirmed" });
+
+    const [configPda] = findProgramConfigPda();
+    const config = await program.account.programConfig.fetch(configPda);
+    expect(config.admins).toHaveLength(3);
+    const adminKeys = config.admins.map((a: PublicKey) => a.toBase58());
+    expect(adminKeys).toContain(admin1.publicKey.toBase58());
+    expect(adminKeys).toContain(admin2.publicKey.toBase58());
+    expect(adminKeys).toContain(admin3.publicKey.toBase58());
+  });
+
+  it("replaces existing admin list with new admins", async () => {
+    const program = createProgram(connection, upgradeAuthority);
+    const originalAdmin = Keypair.generate();
+    const replacementAdmin = Keypair.generate();
+
+    // Set original admin
+    await program.methods
+      .setAdmins([originalAdmin.publicKey])
+      .accountsPartial({
+        payer: upgradeAuthority.publicKey,
+        programData: findProgramDataPda()[0],
+      })
+      .signers([upgradeAuthority])
+      .rpc({ commitment: "confirmed" });
+
+    // Replace with different admin
+    await program.methods
+      .setAdmins([replacementAdmin.publicKey])
+      .accountsPartial({
+        payer: upgradeAuthority.publicKey,
+        programData: findProgramDataPda()[0],
+      })
+      .signers([upgradeAuthority])
+      .rpc({ commitment: "confirmed" });
+
+    const [configPda] = findProgramConfigPda();
+    const config = await program.account.programConfig.fetch(configPda);
+    expect(config.admins).toHaveLength(1);
+    expect(config.admins[0].toBase58()).toBe(replacementAdmin.publicKey.toBase58());
+  });
+
+  it("rejects non-upgrade-authority callers", async () => {
+    const impostor = Keypair.generate();
+    await airdrop(connection, impostor.publicKey);
+    const program = createProgram(connection, impostor);
+
+    await expect(
+      program.methods
+        .setAdmins([impostor.publicKey])
+        .accountsPartial({
+          payer: impostor.publicKey,
+          programData: findProgramDataPda()[0],
+        })
+        .signers([impostor])
+        .rpc(),
+    ).rejects.toThrow();
+  });
+
+  it("updated admins can register new authorities", async () => {
+    const program = createProgram(connection, upgradeAuthority);
+    const newAdmin = Keypair.generate();
+    await airdrop(connection, newAdmin.publicKey);
+
+    // Set new admin
+    await program.methods
+      .setAdmins([newAdmin.publicKey])
+      .accountsPartial({
+        payer: upgradeAuthority.publicKey,
+        programData: findProgramDataPda()[0],
+      })
+      .signers([upgradeAuthority])
+      .rpc({ commitment: "confirmed" });
+
+    // New admin registers an authority
+    const adminProgram = createProgram(connection, newAdmin);
+    const newAuthority = Keypair.generate();
+    await adminProgram.methods
+      .initializeAuthority(newAuthority.publicKey)
+      .accountsPartial({ admin: newAdmin.publicKey })
+      .signers([newAdmin])
+      .rpc({ commitment: "confirmed" });
+
+    const [counterPda] = findScheduleCounterPda(newAuthority.publicKey);
+    const counter = await program.account.scheduleCounter.fetch(counterPda);
+    expect(counter.authority.toBase58()).toBe(newAuthority.publicKey.toBase58());
+  });
+
+  it("removed admins cannot register new authorities", async () => {
+    const program = createProgram(connection, upgradeAuthority);
+    const oldAdmin = Keypair.generate();
+    const currentAdmin = Keypair.generate();
+    await airdrop(connection, oldAdmin.publicKey);
+
+    // Set oldAdmin as admin
+    await program.methods
+      .setAdmins([oldAdmin.publicKey])
+      .accountsPartial({
+        payer: upgradeAuthority.publicKey,
+        programData: findProgramDataPda()[0],
+      })
+      .signers([upgradeAuthority])
+      .rpc({ commitment: "confirmed" });
+
+    // Replace with currentAdmin, removing oldAdmin
+    await program.methods
+      .setAdmins([currentAdmin.publicKey])
+      .accountsPartial({
+        payer: upgradeAuthority.publicKey,
+        programData: findProgramDataPda()[0],
+      })
+      .signers([upgradeAuthority])
+      .rpc({ commitment: "confirmed" });
+
+    // oldAdmin should no longer be able to register authorities
+    const oldAdminProgram = createProgram(connection, oldAdmin);
+    const newAuthority = Keypair.generate();
+    await expect(
+      oldAdminProgram.methods
+        .initializeAuthority(newAuthority.publicKey)
+        .accountsPartial({ admin: oldAdmin.publicKey })
+        .signers([oldAdmin])
+        .rpc(),
+    ).rejects.toThrow();
   });
 });

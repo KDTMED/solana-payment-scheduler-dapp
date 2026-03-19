@@ -20,8 +20,9 @@ function isValidPubkey(addr: string): boolean {
 export function Admin() {
   const { connection } = useConnection();
   const wallet = useWallet();
-  const [admins, setAdmins] = useState<string[]>([""]);
   const [currentAdmins, setCurrentAdmins] = useState<string[]>([]);
+  const [editingAdmins, setEditingAdmins] = useState(false);
+  const [draftAdmins, setDraftAdmins] = useState<string[]>([]);
   const [newAuthority, setNewAuthority] = useState("");
   const [registeredAuthorities, setRegisteredAuthorities] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -72,23 +73,33 @@ export function Admin() {
     }
   }, [wallet.publicKey, fetchConfig]);
 
+  function startEditing() {
+    setDraftAdmins(currentAdmins.length > 0 ? [...currentAdmins] : [""]);
+    setEditingAdmins(true);
+  }
+
+  function cancelEditing() {
+    setEditingAdmins(false);
+    setDraftAdmins([]);
+  }
+
   function addAdminField() {
-    setAdmins((a) => [...a, ""]);
+    setDraftAdmins((a) => [...a, ""]);
   }
 
   function updateAdmin(i: number, value: string) {
-    setAdmins((a) => a.map((v, idx) => (idx === i ? value : v)));
+    setDraftAdmins((a) => a.map((v, idx) => (idx === i ? value : v)));
   }
 
   function removeAdminField(i: number) {
-    setAdmins((a) => a.filter((_, idx) => idx !== i));
+    setDraftAdmins((a) => a.filter((_, idx) => idx !== i));
   }
 
   async function handleSetAdmins(e: React.FormEvent) {
     e.preventDefault();
     if (!wallet.publicKey || !wallet.signTransaction) return;
 
-    const validAdmins = admins.filter((a) => isValidPubkey(a.trim()));
+    const validAdmins = draftAdmins.filter((a) => isValidPubkey(a.trim()));
     if (validAdmins.length === 0) {
       setMessage("Please enter at least one valid admin public key.");
       return;
@@ -119,6 +130,7 @@ export function Admin() {
         .rpc({ commitment: "confirmed" });
 
       setMessage("Admin list updated successfully.");
+      setEditingAdmins(false);
       fetchConfig();
     } catch (err: any) {
       console.error("Failed to set admins:", err);
@@ -212,20 +224,79 @@ export function Admin() {
       )}
 
       {/* Current Admins */}
-      {currentAdmins.length > 0 && (
-        <div className="rounded-xl bg-slate-900 border border-slate-800 p-6">
-          <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
+      <div className="rounded-xl bg-slate-900 border border-slate-800 p-6">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
             Current Admins
           </h3>
-          <div className="space-y-1">
-            {currentAdmins.map((a, i) => (
-              <p key={i} className="text-xs text-slate-300 font-mono">
-                {a}
-              </p>
-            ))}
-          </div>
+          {isUpgradeAuthority && !editingAdmins && (
+            <button
+              type="button"
+              onClick={startEditing}
+              className="text-xs text-brand-400 hover:text-brand-300 font-medium"
+            >
+              Edit
+            </button>
+          )}
+          {isUpgradeAuthority && editingAdmins && (
+            <button
+              type="button"
+              onClick={cancelEditing}
+              className="text-xs text-slate-500 hover:text-slate-300 font-medium"
+            >
+              Cancel
+            </button>
+          )}
         </div>
-      )}
+
+        {!editingAdmins ? (
+          currentAdmins.length > 0 ? (
+            <div className="space-y-1">
+              {currentAdmins.map((a, i) => (
+                <p key={i} className="text-xs text-slate-300 font-mono">
+                  {a}
+                </p>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-500">No admins configured.</p>
+          )
+        ) : (
+          <form onSubmit={handleSetAdmins} className="space-y-3">
+            {draftAdmins.map((a, i) => (
+              <div key={i} className="flex gap-2 items-center">
+                <input
+                  value={a}
+                  onChange={(e) => updateAdmin(i, e.target.value)}
+                  placeholder="Admin public key…"
+                  className="flex-1 bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-brand-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeAdminField(i)}
+                  className="text-slate-600 hover:text-red-400 text-lg leading-none"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addAdminField}
+              className="text-xs text-brand-400 hover:text-brand-300"
+            >
+              + Add admin
+            </button>
+            <button
+              type="submit"
+              disabled={busy}
+              className="w-full py-2.5 rounded-lg bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-sm font-medium text-white transition-colors"
+            >
+              {busy ? "Updating…" : "Set Admins"}
+            </button>
+          </form>
+        )}
+      </div>
 
       {/* Registered Authorities */}
       {registeredAuthorities.length > 0 && (
@@ -242,49 +313,6 @@ export function Admin() {
           </div>
         </div>
       )}
-
-      {/* Set Admins (upgrade authority only) */}
-      {isUpgradeAuthority && <div className="rounded-xl bg-slate-900 border border-slate-800 p-6">
-        <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">
-          Set Admin List
-        </h3>
-        <p className="text-xs text-slate-500 mb-4">
-          Only the program's upgrade authority can set the admin list.
-        </p>
-        <form onSubmit={handleSetAdmins} className="space-y-3">
-          {admins.map((a, i) => (
-            <div key={i} className="flex gap-2 items-center">
-              <input
-                value={a}
-                onChange={(e) => updateAdmin(i, e.target.value)}
-                placeholder="Admin public key…"
-                className="flex-1 bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-brand-500"
-              />
-              <button
-                type="button"
-                onClick={() => removeAdminField(i)}
-                className="text-slate-600 hover:text-red-400 text-lg leading-none"
-              >
-                ×
-              </button>
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={addAdminField}
-            className="text-xs text-brand-400 hover:text-brand-300"
-          >
-            + Add admin
-          </button>
-          <button
-            type="submit"
-            disabled={busy}
-            className="w-full py-2.5 rounded-lg bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-sm font-medium text-white transition-colors"
-          >
-            {busy ? "Updating…" : "Set Admins"}
-          </button>
-        </form>
-      </div>}
 
       {/* Initialize Authority (admin only) */}
       {wallet.publicKey && currentAdmins.includes(wallet.publicKey.toBase58()) && <div className="rounded-xl bg-slate-900 border border-slate-800 p-6">
