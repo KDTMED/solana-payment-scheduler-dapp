@@ -13,8 +13,8 @@ import {
   getAccount,
 } from "@solana/spl-token";
 import { AnchorProvider, Program, BN, Wallet } from "@coral-xyz/anchor";
-import type { ScheduledTransfer } from "../src/idl/scheduled_transfer";
-import IDL from "../src/idl/scheduled_transfer.json";
+import type { ScheduledTransfer } from "../idl/scheduled_transfer";
+import IDL from "../idl/scheduled_transfer.json";
 import * as fs from "fs";
 import * as path from "path";
 

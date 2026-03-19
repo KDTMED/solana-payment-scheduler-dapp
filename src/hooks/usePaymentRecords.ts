@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { BorshCoder } from "@coral-xyz/anchor";
-import IDL from "../idl/scheduled_transfer.json";
+import IDL from "../../idl/scheduled_transfer.json";
 import { PaymentRecord, PaymentSchedule } from "../types";
 
 const coder = new BorshCoder(IDL as any);

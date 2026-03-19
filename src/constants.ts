@@ -1,6 +1,6 @@
 import { PublicKey } from "@solana/web3.js";
 import { CLUSTER } from "./config";
-import IDL from "./idl/scheduled_transfer.json";
+import IDL from "../idl/scheduled_transfer.json";
 
 export const PROGRAM_ID = new PublicKey(IDL.address);
 

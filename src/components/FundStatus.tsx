@@ -20,8 +20,8 @@ import {
   USDC_MINT,
   USDT_MINT,
 } from "../constants";
-import IDL from "../idl/scheduled_transfer.json";
-import type { ScheduledTransfer } from "../idl/scheduled_transfer";
+import IDL from "../../idl/scheduled_transfer.json";
+import type { ScheduledTransfer } from "../../idl/scheduled_transfer";
 
 interface Props {
   status: FundStatusType | null;

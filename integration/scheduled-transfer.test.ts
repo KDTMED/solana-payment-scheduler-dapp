@@ -30,7 +30,7 @@ import {
 } from "./helpers";
 import type { Connection } from "@solana/web3.js";
 import type { Program } from "@coral-xyz/anchor";
-import type { ScheduledTransfer } from "../src/idl/scheduled_transfer";
+import type { ScheduledTransfer } from "../idl/scheduled_transfer";
 
 describe("Scheduled Transfer – full lifecycle", () => {
   let connection: Connection;

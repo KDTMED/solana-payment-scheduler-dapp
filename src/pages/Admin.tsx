@@ -3,8 +3,8 @@ import { Link } from "react-router-dom";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { Program, AnchorProvider } from "@coral-xyz/anchor";
-import IDL from "../idl/scheduled_transfer.json";
-import type { ScheduledTransfer } from "../idl/scheduled_transfer";
+import IDL from "../../idl/scheduled_transfer.json";
+import type { ScheduledTransfer } from "../../idl/scheduled_transfer";
 import { findProgramConfigPda, findProgramDataPda, findScheduleCounterPda, findAuthorityRegistryPda } from "../utils/pda";
 import { useIsUpgradeAuthority } from "../hooks/useIsUpgradeAuthority";
 

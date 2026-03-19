@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { Program, AnchorProvider } from "@coral-xyz/anchor";
-import IDL from "../idl/scheduled_transfer.json";
-import type { ScheduledTransfer } from "../idl/scheduled_transfer";
+import IDL from "../../idl/scheduled_transfer.json";
+import type { ScheduledTransfer } from "../../idl/scheduled_transfer";
 import { PROGRAM_ID } from "../constants";
 import { findProgramConfigPda } from "../utils/pda";
 

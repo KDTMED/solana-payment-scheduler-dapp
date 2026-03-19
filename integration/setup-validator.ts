@@ -10,7 +10,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { spawn } from "child_process";
 
-import IDL from "../src/idl/scheduled_transfer.json";
+import IDL from "../idl/scheduled_transfer.json";
 
 const PROGRAM_ID = IDL.address;
 const PROGRAM_SO = path.resolve(

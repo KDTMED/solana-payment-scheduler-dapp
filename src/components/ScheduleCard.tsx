@@ -5,8 +5,8 @@ import { getAssociatedTokenAddress } from "@solana/spl-token";
 import { PaymentSchedule } from "../types";
 import { formatTokenAmount } from "../utils/format";
 import { USDC_MINT, USDT_MINT } from "../constants";
-import IDL from "../idl/scheduled_transfer.json";
-import type { ScheduledTransfer } from "../idl/scheduled_transfer";
+import IDL from "../../idl/scheduled_transfer.json";
+import type { ScheduledTransfer } from "../../idl/scheduled_transfer";
 
 interface Props {
   schedule: PaymentSchedule | null;

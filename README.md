@@ -53,8 +53,8 @@ payments come due; this UI handles setup, funding, and monitoring.
 
 After deploying to a new program address, copy the IDL and types from the smart contract build output to the dapp (the program ID is derived from the IDL everywhere):
 ```bash
-cp solana-payment-scheduler-smartcontract/target/types/scheduled_transfer.ts solana-payment-scheduler-dapp/src/idl/
-cp solana-payment-scheduler-smartcontract/target/idl/scheduled_transfer.json solana-payment-scheduler-dapp/src/idl/
+cp solana-payment-scheduler-smartcontract/target/types/scheduled_transfer.ts solana-payment-scheduler-dapp/idl/
+cp solana-payment-scheduler-smartcontract/target/idl/scheduled_transfer.json solana-payment-scheduler-dapp/idl/
 ```
 
 ### Install & Run

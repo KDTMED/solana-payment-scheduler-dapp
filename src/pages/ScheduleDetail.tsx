@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { AccountInfo } from "@solana/web3.js";
 import { BorshAccountsCoder } from "@coral-xyz/anchor";
-import IDL from "../idl/scheduled_transfer.json";
+import IDL from "../../idl/scheduled_transfer.json";
 import { PaymentSchedule } from "../types";
 import { findPaymentSchedulePda } from "../utils/pda";
 import { ScheduleCard } from "../components/ScheduleCard";
