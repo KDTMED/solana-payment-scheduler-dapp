@@ -164,7 +164,7 @@ src/
     ScheduleDetail.tsx   # Single schedule detail view
   utils/
     format.ts            # Token amount, SOL, timestamp, duration helpers
-    pda.ts               # PDA derivation for schedule and counter accounts
+    pda.ts               # PDA derivation for schedule, counter, and program data accounts
   idl/
     scheduled_transfer.json  # Anchor IDL
     scheduled_transfer.ts    # Typed IDL for TypeScript

@@ -1,6 +1,10 @@
 import { PublicKey } from "@solana/web3.js";
 import { PROGRAM_ID } from "../constants";
 
+const BPF_LOADER_UPGRADEABLE_PROGRAM_ID = new PublicKey(
+  "BPFLoaderUpgradeab1e11111111111111111111111",
+);
+
 export function findScheduleCounterPda(
   authority: PublicKey,
 ): [PublicKey, number] {
@@ -21,6 +25,13 @@ export function findAuthorityRegistryPda(): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("authority_registry")],
     PROGRAM_ID,
+  );
+}
+
+export function findProgramDataPda(): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [PROGRAM_ID.toBuffer()],
+    BPF_LOADER_UPGRADEABLE_PROGRAM_ID,
   );
 }
 

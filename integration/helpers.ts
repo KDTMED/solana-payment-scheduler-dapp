@@ -145,6 +145,17 @@ export function findProgramConfigPda(): [PublicKey, number] {
   );
 }
 
+const BPF_LOADER_UPGRADEABLE_PROGRAM_ID = new PublicKey(
+  "BPFLoaderUpgradeab1e11111111111111111111111",
+);
+
+export function findProgramDataPda(): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [PROGRAM_ID.toBuffer()],
+    BPF_LOADER_UPGRADEABLE_PROGRAM_ID,
+  );
+}
+
 export function findAuthorityRegistryPda(): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("authority_registry")],
@@ -169,7 +180,7 @@ export async function registerAuthority(
   );
   await upgradeProgram.methods
     .setAdmins([admin.publicKey])
-    .accountsPartial({ payer: upgradeAuthority.publicKey })
+    .accountsPartial({ payer: upgradeAuthority.publicKey, programData: findProgramDataPda()[0] })
     .signers([upgradeAuthority])
     .rpc({ commitment: "confirmed" });
 

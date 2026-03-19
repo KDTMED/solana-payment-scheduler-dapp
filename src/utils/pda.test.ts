@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from "vitest";
 import { PublicKey } from "@solana/web3.js";
-import { findScheduleCounterPda, findPaymentSchedulePda } from "./pda";
+import { findScheduleCounterPda, findPaymentSchedulePda, findProgramDataPda } from "./pda";
 
 const authority = new PublicKey("11111111111111111111111111111111");
 
@@ -24,6 +24,21 @@ describe("findScheduleCounterPda", () => {
     const [pda1] = findScheduleCounterPda(authority);
     const [pda2] = findScheduleCounterPda(other);
     expect(pda1.toBase58()).not.toBe(pda2.toBase58());
+  });
+});
+
+describe("findProgramDataPda", () => {
+  it("returns a PublicKey and bump", () => {
+    const [pda, bump] = findProgramDataPda();
+    expect(pda).toBeInstanceOf(PublicKey);
+    expect(bump).toBeGreaterThanOrEqual(0);
+    expect(bump).toBeLessThanOrEqual(255);
+  });
+
+  it("is deterministic", () => {
+    const [pda1] = findProgramDataPda();
+    const [pda2] = findProgramDataPda();
+    expect(pda1.toBase58()).toBe(pda2.toBase58());
   });
 });
 

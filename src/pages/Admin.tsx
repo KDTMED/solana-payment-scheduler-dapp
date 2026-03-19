@@ -5,7 +5,7 @@ import { PublicKey } from "@solana/web3.js";
 import { Program, AnchorProvider } from "@coral-xyz/anchor";
 import IDL from "../idl/scheduled_transfer.json";
 import type { ScheduledTransfer } from "../idl/scheduled_transfer";
-import { findProgramConfigPda, findScheduleCounterPda, findAuthorityRegistryPda } from "../utils/pda";
+import { findProgramConfigPda, findProgramDataPda, findScheduleCounterPda, findAuthorityRegistryPda } from "../utils/pda";
 import { useIsUpgradeAuthority } from "../hooks/useIsUpgradeAuthority";
 
 function isValidPubkey(addr: string): boolean {
@@ -109,10 +109,12 @@ export function Admin() {
         (a) => new PublicKey(a.trim()),
       );
 
+      const [programData] = findProgramDataPda();
       await program.methods
         .setAdmins(adminPubkeys)
         .accounts({
           payer: wallet.publicKey,
+          programData,
         })
         .rpc({ commitment: "confirmed" });
 
