@@ -17,8 +17,12 @@
     "test:coverage": "vitest run --coverage",
     "test:integration": "vitest run --config integration/vitest.config.ts integration/",
     "validator": "bun integration/setup-validator.ts",
-    "predeploy": "bun run build:mainnet",
-    "deploy": "gh-pages -d dist"
+    "predeploy": "bun run build:devnet",
+    "predeploy:mainnet": "bun run build:mainnet",
+    "deploy": "gh-pages -d dist",
+    "deploy:devnet": "bun run predeploy && gh-pages -d dist --dest devnet",
+    "deploy:mainnet": "bun run predeploy:mainnet && gh-pages -d dist --dest mainnet",
+    "deploy:both": "bun run deploy:devnet && bun run deploy:mainnet"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.1",
