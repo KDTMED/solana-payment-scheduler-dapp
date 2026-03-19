@@ -26,6 +26,7 @@ function cspPlugin(): Plugin {
 }
 
 export default defineConfig({
+  base: "/solana-payment-scheduler-dapp/",
   test: {
     environment: "jsdom",
     globals: true,
