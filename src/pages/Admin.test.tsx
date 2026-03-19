@@ -56,14 +56,15 @@ describe("Admin", () => {
     expect(screen.getAllByPlaceholderText("Admin public key…")).toHaveLength(1);
   });
 
-  it("hides Register Payment Authority panel when wallet is not an admin", () => {
+  it("always shows Registered Authorities panel", () => {
     render(<MemoryRouter><Admin /></MemoryRouter>);
-    expect(screen.queryByText("Register Payment Authority")).not.toBeInTheDocument();
+    expect(screen.getByText("Registered Authorities")).toBeInTheDocument();
+    expect(screen.getByText("No authorities registered.")).toBeInTheDocument();
   });
 
-  it("hides Registered Authorities panel when registry has no data", () => {
+  it("hides Add button for authorities when wallet is not an admin", () => {
     render(<MemoryRouter><Admin /></MemoryRouter>);
-    expect(screen.queryByText("Registered Authorities")).not.toBeInTheDocument();
+    expect(screen.queryByText("Add")).not.toBeInTheDocument();
   });
 
   it("shows connect wallet message when no wallet connected", () => {

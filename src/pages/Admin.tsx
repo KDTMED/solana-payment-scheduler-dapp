@@ -25,9 +25,11 @@ export function Admin() {
   const [draftAdmins, setDraftAdmins] = useState<string[]>([]);
   const [newAuthority, setNewAuthority] = useState("");
   const [registeredAuthorities, setRegisteredAuthorities] = useState<string[]>([]);
+  const [addingAuthority, setAddingAuthority] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const isUpgradeAuthority = useIsUpgradeAuthority();
+  const isAdmin = wallet.publicKey && currentAdmins.includes(wallet.publicKey.toBase58());
 
   const fetchConfig = useCallback(async () => {
     try {
@@ -184,6 +186,7 @@ export function Admin() {
         `Authority ${authorityPubkey.toBase58()} registered successfully.`,
       );
       setNewAuthority("");
+      setAddingAuthority(false);
       fetchConfig();
     } catch (err: any) {
       console.error("Failed to initialize authority:", err);
@@ -299,11 +302,32 @@ export function Admin() {
       </div>
 
       {/* Registered Authorities */}
-      {registeredAuthorities.length > 0 && (
-        <div className="rounded-xl bg-slate-900 border border-slate-800 p-6">
-          <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
+      <div className="rounded-xl bg-slate-900 border border-slate-800 p-6">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
             Registered Authorities
           </h3>
+          {isAdmin && !addingAuthority && (
+            <button
+              type="button"
+              onClick={() => setAddingAuthority(true)}
+              className="text-xs text-brand-400 hover:text-brand-300 font-medium"
+            >
+              Add
+            </button>
+          )}
+          {isAdmin && addingAuthority && (
+            <button
+              type="button"
+              onClick={() => { setAddingAuthority(false); setNewAuthority(""); }}
+              className="text-xs text-slate-500 hover:text-slate-300 font-medium"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+
+        {registeredAuthorities.length > 0 ? (
           <div className="space-y-1">
             {registeredAuthorities.map((a, i) => (
               <p key={i} className="text-xs text-slate-300 font-mono">
@@ -311,39 +335,33 @@ export function Admin() {
               </p>
             ))}
           </div>
-        </div>
-      )}
+        ) : (
+          <p className="text-xs text-slate-500">No authorities registered.</p>
+        )}
 
-      {/* Initialize Authority (admin only) */}
-      {wallet.publicKey && currentAdmins.includes(wallet.publicKey.toBase58()) && <div className="rounded-xl bg-slate-900 border border-slate-800 p-6">
-        <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">
-          Register Payment Authority
-        </h3>
-        <p className="text-xs text-slate-500 mb-4">
-          Only admins can register new payment authorities. Once registered, the
-          authority can create payment schedules.
-        </p>
-        <form onSubmit={handleInitializeAuthority} className="space-y-3">
-          <input
-            value={newAuthority}
-            onChange={(e) => setNewAuthority(e.target.value)}
-            placeholder="Authority public key to register…"
-            className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-brand-500"
-          />
-          {newAuthority && !isValidPubkey(newAuthority) && (
-            <p className="text-xs text-red-400">
-              Invalid public key format.
-            </p>
-          )}
-          <button
-            type="submit"
-            disabled={busy}
-            className="w-full py-2.5 rounded-lg bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-sm font-medium text-white transition-colors"
-          >
-            {busy ? "Registering…" : "Register Authority"}
-          </button>
-        </form>
-      </div>}
+        {addingAuthority && (
+          <form onSubmit={handleInitializeAuthority} className="space-y-3 mt-4 pt-4 border-t border-slate-800">
+            <input
+              value={newAuthority}
+              onChange={(e) => setNewAuthority(e.target.value)}
+              placeholder="Authority public key to register…"
+              className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-brand-500"
+            />
+            {newAuthority && !isValidPubkey(newAuthority) && (
+              <p className="text-xs text-red-400">
+                Invalid public key format.
+              </p>
+            )}
+            <button
+              type="submit"
+              disabled={busy}
+              className="w-full py-2.5 rounded-lg bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-sm font-medium text-white transition-colors"
+            >
+              {busy ? "Registering…" : "Register Authority"}
+            </button>
+          </form>
+        )}
+      </div>
     </div>
   );
 }
