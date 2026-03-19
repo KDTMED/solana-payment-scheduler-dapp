@@ -25,23 +25,28 @@ function cspPlugin(): Plugin {
   };
 }
 
-export default defineConfig({
-  base: "/solana-payment-scheduler-dapp/",
-  test: {
-    environment: "jsdom",
-    globals: true,
-    setupFiles: ["./src/test/setup.ts"],
-    exclude: ["integration/**", "node_modules/**"],
-  },
-  plugins: [
-    react(),
-    cspPlugin(),
-    nodePolyfills({
-      globals: {
-        Buffer: true,
-        global: true,
-        process: true,
-      },
-    }),
-  ],
+export default defineConfig(({ mode }) => {
+  const cluster = process.env.VITE_SOLANA_CLUSTER || "devnet";
+  const basePath = `/solana-payment-scheduler-dapp/${cluster === "mainnet-beta" ? "mainnet" : "devnet"}/`;
+
+  return {
+    base: basePath,
+    test: {
+      environment: "jsdom",
+      globals: true,
+      setupFiles: ["./src/test/setup.ts"],
+      exclude: ["integration/**", "node_modules/**"],
+    },
+    plugins: [
+      react(),
+      cspPlugin(),
+      nodePolyfills({
+        globals: {
+          Buffer: true,
+          global: true,
+          process: true,
+        },
+      }),
+    ],
+  };
 });
