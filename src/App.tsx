@@ -88,8 +88,10 @@ export default function App() {
     [],
   );
 
+  const basename = import.meta.env.BASE_URL;
+
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={basename}>
       <ConnectionProvider
         endpoint={endpoint}
         config={{ commitment: "confirmed" }}

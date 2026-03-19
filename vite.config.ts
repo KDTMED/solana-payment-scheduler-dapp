@@ -7,7 +7,8 @@ import type { Plugin } from "vite";
 const cspPolicy = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
-  "style-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com",
   "connect-src 'self' https://api.devnet.solana.com https://api.mainnet-beta.solana.com wss://api.devnet.solana.com wss://api.mainnet-beta.solana.com",
   "img-src 'self' data:",
 ].join("; ");
@@ -25,23 +26,28 @@ function cspPlugin(): Plugin {
   };
 }
 
-export default defineConfig({
-  base: "/solana-payment-scheduler-dapp/",
-  test: {
-    environment: "jsdom",
-    globals: true,
-    setupFiles: ["./src/test/setup.ts"],
-    exclude: ["integration/**", "node_modules/**"],
-  },
-  plugins: [
-    react(),
-    cspPlugin(),
-    nodePolyfills({
-      globals: {
-        Buffer: true,
-        global: true,
-        process: true,
-      },
-    }),
-  ],
+export default defineConfig(({ mode }) => {
+  const cluster = process.env.VITE_SOLANA_CLUSTER || "devnet";
+  const basePath = `/solana-payment-scheduler-dapp/${cluster === "mainnet-beta" ? "mainnet" : "devnet"}/`;
+
+  return {
+    base: basePath,
+    test: {
+      environment: "jsdom",
+      globals: true,
+      setupFiles: ["./src/test/setup.ts"],
+      exclude: ["integration/**", "node_modules/**"],
+    },
+    plugins: [
+      react(),
+      cspPlugin(),
+      nodePolyfills({
+        globals: {
+          Buffer: true,
+          global: true,
+          process: true,
+        },
+      }),
+    ],
+  };
 });
