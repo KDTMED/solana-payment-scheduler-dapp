@@ -10,7 +10,9 @@ import * as fs from "fs";
 import * as path from "path";
 import { spawn } from "child_process";
 
-const PROGRAM_ID = "BcrXS7PaXohfXWXLyiTmxEe3ujnWzkQY1cC9Q85aHaKD";
+import IDL from "../src/idl/scheduled_transfer.json";
+
+const PROGRAM_ID = IDL.address;
 const PROGRAM_SO = path.resolve(
   import.meta.dirname!,
   "../../solana-payment-scheduler-smartcontract/target/deploy/scheduled_transfer.so",

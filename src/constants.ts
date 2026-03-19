@@ -1,9 +1,8 @@
 import { PublicKey } from "@solana/web3.js";
 import { CLUSTER } from "./config";
+import IDL from "./idl/scheduled_transfer.json";
 
-export const PROGRAM_ID = new PublicKey(
-  "BcrXS7PaXohfXWXLyiTmxEe3ujnWzkQY1cC9Q85aHaKD",
-);
+export const PROGRAM_ID = new PublicKey(IDL.address);
 
 export const TOKEN_DECIMALS = 6;
 

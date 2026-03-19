@@ -51,12 +51,7 @@ payments come due; this UI handles setup, funding, and monitoring.
 - A Solana wallet browser extension (Phantom or Solflare)
 - Devnet SOL for fees (`solana airdrop 1` or the [faucet](https://faucet.solana.com))
 
-Update the program ID in the following locations:
- - integration/helpers.ts L22:  "BcrXS7PaXohfXWXLyiTmxEe3ujnWzkQY1cC9Q85aHaKD",
- - integration/setup-validator.ts L13:const PROGRAM_ID = "BcrXS7PaXohfXWXLyiTmxEe3ujnWzkQY1cC9Q85aHaKD";
- - src/constants.ts L5:  "BcrXS7PaXohfXWXLyiTmxEe3ujnWzkQY1cC9Q85aHaKD",
-
-Copy the IDL and types from the smart contract build output to the dapp:
+After deploying to a new program address, copy the IDL and types from the smart contract build output to the dapp (the program ID is derived from the IDL everywhere):
 ```bash
 cp solana-payment-scheduler-smartcontract/target/types/scheduled_transfer.ts solana-payment-scheduler-dapp/src/idl/
 cp solana-payment-scheduler-smartcontract/target/idl/scheduled_transfer.json solana-payment-scheduler-dapp/src/idl/

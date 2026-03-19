@@ -18,9 +18,7 @@ import IDL from "../src/idl/scheduled_transfer.json";
 import * as fs from "fs";
 import * as path from "path";
 
-export const PROGRAM_ID = new PublicKey(
-  "BcrXS7PaXohfXWXLyiTmxEe3ujnWzkQY1cC9Q85aHaKD",
-);
+export const PROGRAM_ID = new PublicKey(IDL.address);
 
 // Devnet mint addresses (must match what the on-chain program expects)
 export const USDC_MINT = new PublicKey(
